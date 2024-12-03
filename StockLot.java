@@ -1,3 +1,5 @@
+package afin.jstocks;
+
 public class StockLot {
     private String ticker;
     private int quantity;

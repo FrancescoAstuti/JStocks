@@ -1,3 +1,5 @@
+package afin.jstocks;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;

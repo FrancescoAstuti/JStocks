@@ -1,17 +1,29 @@
+package afin.jstocks;
+
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.io.FileWriter;
+import java.io.IOException;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.FileReader;
+import java.io.IOException;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 public class Main {
     private static ArrayList<StockLot> stockLots = new ArrayList<>();
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            GUI gui = new GUI(stockLots);
-            gui.createAndShowGUI();
-        });
-    }
+    loadStockLots();
+    Runtime.getRuntime().addShutdownHook(new Thread(Main::saveStockLots));
+
+    SwingUtilities.invokeLater(() -> {
+        GUI gui = new GUI(stockLots);
+        gui.createAndShowGUI();
+    });
+}
 
     public static void addStockLot(String ticker, int quantity, double purchasePrice, double currentPrice) {
         StockLot stockLot = new StockLot(ticker, quantity, purchasePrice, currentPrice);
@@ -33,4 +45,42 @@ public class Main {
             stockLots.remove(index);
         }
     }
+    
+    public static void saveStockLots() {
+    JSONArray jsonArray = new JSONArray();
+    for (StockLot stockLot : stockLots) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("ticker", stockLot.getTicker());
+        jsonObject.put("quantity", stockLot.getQuantity());
+        jsonObject.put("purchasePrice", stockLot.getPurchasePrice());
+        jsonObject.put("currentPrice", stockLot.getCurrentPrice());
+        jsonArray.put(jsonObject);
+    }
+
+    try (FileWriter file = new FileWriter("stockLots.json")) {
+        file.write(jsonArray.toString());
+        System.out.println("Stock lots saved successfully.");
+    } catch (IOException e) {
+        e.printStackTrace();
+        System.err.println("Failed to save stock lots.");
+    }
+}
+
+public static void loadStockLots() {
+    try (FileReader reader = new FileReader("stockLots.json")) {
+        JSONArray jsonArray = new JSONArray(new JSONTokener(reader));
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            String ticker = jsonObject.getString("ticker");
+            int quantity = jsonObject.getInt("quantity");
+            double purchasePrice = jsonObject.getDouble("purchasePrice");
+            double currentPrice = jsonObject.getDouble("currentPrice");
+            stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+        }
+        System.out.println("Stock lots loaded successfully.");
+    } catch (IOException e) {
+        e.printStackTrace();
+        System.err.println("Failed to load stock lots.");
+    }
+}
 }
