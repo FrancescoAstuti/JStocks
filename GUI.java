@@ -8,10 +8,16 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.FileReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 public class GUI {
     private ArrayList<StockLot> stockLots;
@@ -21,6 +27,8 @@ public class GUI {
 
     public GUI(ArrayList<StockLot> stockLots) {
         this.stockLots = stockLots;
+        loadStockLots();
+        Runtime.getRuntime().addShutdownHook(new Thread(this::saveStockLots));
     }
 
     public void createAndShowGUI() {
@@ -144,27 +152,27 @@ public class GUI {
         updateTable();
     }
 
-   private void addStockLot() {
-    try {
-        String ticker = tickerField.getText().toUpperCase();
-        int quantity = Integer.parseInt(quantityField.getText());
-        double purchasePrice = round(Double.parseDouble(purchasePriceField.getText()), 2);
-        Double currentPrice = GetPrice.getCurrentPrice(ticker);
+    private void addStockLot() {
+        try {
+            String ticker = tickerField.getText().toUpperCase();
+            int quantity = Integer.parseInt(quantityField.getText());
+            double purchasePrice = round(Double.parseDouble(purchasePriceField.getText()), 2);
+            Double currentPrice = GetPrice.getCurrentPrice(ticker);
 
-        if (currentPrice == null) {
-            JOptionPane.showMessageDialog(null, "Ticker not found.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            if (currentPrice == null) {
+                JOptionPane.showMessageDialog(null, "Ticker not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            currentPrice = round(currentPrice, 2);
+            stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+            updateTable();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Please enter valid numbers", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-
-        currentPrice = round(currentPrice, 2);
-        Main.addStockLot(ticker, quantity, purchasePrice, currentPrice);
-        updateTable();
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(null, "Please enter valid numbers", "Error", JOptionPane.ERROR_MESSAGE);
-    } catch (Exception e) {
-        JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
-}
 
     private void modifyStockLot() {
         int viewRow = table.getSelectedRow();
@@ -181,7 +189,11 @@ public class GUI {
                     return;
                 }
 
-                Main.modifyStockLot(modelRow, ticker, quantity, purchasePrice, currentPrice);
+                StockLot stockLot = stockLots.get(modelRow);
+                stockLot.setTicker(ticker);
+                stockLot.setQuantity(quantity);
+                stockLot.setPurchasePrice(purchasePrice);
+                stockLot.setCurrentPrice(currentPrice);
                 updateTable();
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(null, "Please enter valid numbers", "Error", JOptionPane.ERROR_MESSAGE);
@@ -195,7 +207,7 @@ public class GUI {
         int viewRow = table.getSelectedRow();
         if (viewRow != -1) {
             int modelRow = table.convertRowIndexToModel(viewRow);
-            Main.deleteStockLot(modelRow);
+            stockLots.remove(modelRow);
             updateTable();
         }
     }
@@ -213,6 +225,44 @@ public class GUI {
                 round(stockLot.getCurrentPrice(), 2),
                 round(stockLot.getProfitLossPercentage(), 2)
             });
+        }
+    }
+
+    private void saveStockLots() {
+        JSONArray jsonArray = new JSONArray();
+        for (StockLot stockLot : stockLots) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("ticker", stockLot.getTicker());
+            jsonObject.put("quantity", stockLot.getQuantity());
+            jsonObject.put("purchasePrice", stockLot.getPurchasePrice());
+            jsonObject.put("currentPrice", stockLot.getCurrentPrice());
+            jsonArray.put(jsonObject);
+        }
+
+        try (FileWriter file = new FileWriter("stockLots.json")) {
+            file.write(jsonArray.toString());
+            System.out.println("Stock lots saved successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to save stock lots.");
+        }
+    }
+
+    private void loadStockLots() {
+        try (FileReader reader = new FileReader("stockLots.json")) {
+            JSONArray jsonArray = new JSONArray(new JSONTokener(reader));
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                String ticker = jsonObject.getString("ticker");
+                int quantity = jsonObject.getInt("quantity");
+                double purchasePrice = jsonObject.getDouble("purchasePrice");
+                double currentPrice = jsonObject.getDouble("currentPrice");
+                stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+            }
+            System.out.println("Stock lots loaded successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to load stock lots.");
         }
     }
 
