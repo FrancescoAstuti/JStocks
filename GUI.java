@@ -40,7 +40,7 @@ public class GUI {
 
     public GUI(ArrayList<StockLot> stockLots) {
         this.stockLots = stockLots;
-        loadStockLots();
+        loadStockLotsIfEmpty();
         Runtime.getRuntime().addShutdownHook(new Thread(this::saveStockLots));
     }
 
@@ -319,6 +319,12 @@ public class GUI {
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Failed to save stock lots.");
+        }
+    }
+
+    private void loadStockLotsIfEmpty() {
+        if (stockLots.isEmpty()) {
+            loadStockLots();
         }
     }
 
