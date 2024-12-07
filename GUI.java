@@ -3,6 +3,7 @@ package afin.jstocks;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
@@ -53,7 +54,7 @@ public class GUI {
 
         tableModel = new DefaultTableModel(new Object[]{"Ticker", "Quantity", "Purchase Price", "Current Price", "P/L (%)"}, 0);
         table = new JTable(tableModel);
-        
+
         // Enable sorting with custom comparators
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
         sorter.setComparator(1, Comparator.comparingInt(o -> Integer.parseInt(o.toString()))); // Quantity column
@@ -61,7 +62,7 @@ public class GUI {
         sorter.setComparator(3, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // Current Price column
         sorter.setComparator(4, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // P/L (%) column
         table.setRowSorter(sorter);
-        
+
         JScrollPane scrollPane = new JScrollPane(table);
         panel.add(scrollPane, BorderLayout.CENTER);
 
@@ -300,6 +301,27 @@ public class GUI {
                 round(stockLot.getProfitLossPercentage(), 2)
             });
         }
+
+        // Set custom cell renderer for P/L (%) column
+        table.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                double plPercentage = (double) value;
+                if (plPercentage < -10) {
+                    cell.setBackground(Color.RED);
+                } 
+                else if (plPercentage > 10) {
+                    cell.setBackground(Color.GREEN);
+                }
+                else {
+                    cell.setBackground(Color.WHITE);
+                }
+                
+                            
+                return cell;
+            }
+        });
     }
 
     private void saveStockLots() {
