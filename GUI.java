@@ -34,6 +34,9 @@ public class GUI {
     private JTable table;
     private DefaultTableModel tableModel;
     private JTextField tickerField, quantityField, purchasePriceField;
+    private TimeSeries series;
+    private ChartPanel chartPanel;
+    private JFreeChart timeChart;
 
     public GUI(ArrayList<StockLot> stockLots) {
         this.stockLots = stockLots;
@@ -137,6 +140,15 @@ public class GUI {
         gbc.gridy = 5;
         inputPanel.add(deleteButton, gbc);
 
+        // Add a button to return to the overview window
+        JButton overviewButton = new JButton("Overview");
+        overviewButton.addActionListener(e -> {
+            frame.dispose();
+            Main.showOverview();
+        });
+        gbc.gridy = 6;
+        inputPanel.add(overviewButton, gbc);
+
         panel.add(inputPanel, BorderLayout.SOUTH);
 
         frame.add(panel);
@@ -163,9 +175,45 @@ public class GUI {
     }
 
     public ChartPanel createChartPanel() {
-        TimeSeries series = new TimeSeries("Total Value");
-        LocalDate startDate = LocalDate.now().minus(1, ChronoUnit.YEARS);
+        series = new TimeSeries("Total Value");
+        timeChart = ChartFactory.createTimeSeriesChart(
+            "Total Value Over Time",
+            "Date",
+            "Total Value",
+            new TimeSeriesCollection(series),
+            true,
+            true,
+            false
+        );
+        chartPanel = new ChartPanel(timeChart);
+        return chartPanel;
+    }
+
+    public void updateChart(String timeFrame) {
+        series.clear();
         LocalDate endDate = LocalDate.now();
+        LocalDate startDate;
+        switch (timeFrame) {
+            case "1W":
+                startDate = endDate.minus(1, ChronoUnit.WEEKS);
+                break;
+            case "1M":
+                startDate = endDate.minus(1, ChronoUnit.MONTHS);
+                break;
+            case "2M":
+                startDate = endDate.minus(2, ChronoUnit.MONTHS);
+                break;
+            case "3M":
+                startDate = endDate.minus(3, ChronoUnit.MONTHS);
+                break;
+            case "6M":
+                startDate = endDate.minus(6, ChronoUnit.MONTHS);
+                break;
+            case "1Y":
+            default:
+                startDate = endDate.minus(1, ChronoUnit.YEARS);
+                break;
+        }
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             double totalValue = stockLots.stream()
@@ -174,18 +222,8 @@ public class GUI {
             series.add(new Day(date.getDayOfMonth(), date.getMonthValue(), date.getYear()), totalValue);
         }
 
-        TimeSeriesCollection dataset = new TimeSeriesCollection(series);
-        JFreeChart timeChart = ChartFactory.createTimeSeriesChart(
-            "Total Value Over 1 Year",
-            "Date",
-            "Total Value",
-            dataset,
-            true,
-            true,
-            false
-        );
-
-        return new ChartPanel(timeChart);
+        timeChart.getXYPlot().setDataset(new TimeSeriesCollection(series));
+        chartPanel.repaint();
     }
 
     private void addStockLot() {
@@ -305,7 +343,7 @@ public class GUI {
     private double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
         BigDecimal bd = BigDecimal.valueOf(value);
-        bd = setScale(places, RoundingMode.HALF_UP);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
 }
