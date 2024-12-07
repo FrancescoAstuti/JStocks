@@ -1,5 +1,7 @@
 package afin.jstocks;
 
+import java.util.List;
+
 public class StockLot {
     private String ticker;
     private int quantity;
@@ -47,5 +49,9 @@ public class StockLot {
 
     public double getProfitLossPercentage() {
         return ((currentPrice - purchasePrice) / purchasePrice) * 100;
+    }
+
+    public static double calculateTotalLots(List<StockLot> stockLots) {
+        return stockLots.stream().mapToDouble(StockLot::getQuantity).sum();
     }
 }

@@ -13,11 +13,21 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.time.Day;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 
 public class GUI {
     private ArrayList<StockLot> stockLots;
@@ -152,6 +162,32 @@ public class GUI {
         updateTable();
     }
 
+    public ChartPanel createChartPanel() {
+        TimeSeries series = new TimeSeries("Total Value");
+        LocalDate startDate = LocalDate.now().minus(1, ChronoUnit.YEARS);
+        LocalDate endDate = LocalDate.now();
+
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            double totalValue = stockLots.stream()
+                .mapToDouble(stockLot -> stockLot.getQuantity() * stockLot.getCurrentPrice())
+                .sum();
+            series.add(new Day(date.getDayOfMonth(), date.getMonthValue(), date.getYear()), totalValue);
+        }
+
+        TimeSeriesCollection dataset = new TimeSeriesCollection(series);
+        JFreeChart timeChart = ChartFactory.createTimeSeriesChart(
+            "Total Value Over 1 Year",
+            "Date",
+            "Total Value",
+            dataset,
+            true,
+            true,
+            false
+        );
+
+        return new ChartPanel(timeChart);
+    }
+
     private void addStockLot() {
         try {
             String ticker = tickerField.getText().toUpperCase();
@@ -269,7 +305,7 @@ public class GUI {
     private double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
         BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        bd = setScale(places, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
 }

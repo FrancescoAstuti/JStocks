@@ -1,6 +1,8 @@
 package afin.jstocks;
 
+import org.jfree.chart.ChartPanel;
 import javax.swing.*;
+import java.awt.BorderLayout;
 import java.util.ArrayList;
 
 public class Main {
@@ -10,17 +12,21 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Overview");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(300, 200);
-            JButton portfolioButton = new JButton("Portfolio");
+            frame.setSize(800, 600);
 
+            GUI gui = new GUI(stockLots);
+            ChartPanel chartPanel = gui.createChartPanel();
+            
+            JButton portfolioButton = new JButton("Portfolio");
             portfolioButton.addActionListener(e -> {
                 frame.dispose();
-                GUI gui = new GUI(stockLots);
                 gui.createAndShowGUI();
             });
 
-            JPanel panel = new JPanel();
-            panel.add(portfolioButton);
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.add(chartPanel, BorderLayout.CENTER);
+            panel.add(portfolioButton, BorderLayout.SOUTH);
+
             frame.add(panel);
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
