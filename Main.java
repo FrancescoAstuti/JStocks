@@ -28,6 +28,12 @@ public class Main {
             gui.createAndShowGUI();
         });
 
+        JButton stockScreenerButton = new JButton("Stock Screener");
+        stockScreenerButton.addActionListener(e -> {
+            StockScreener stockScreener = new StockScreener();
+            stockScreener.createAndShowGUI();
+        });
+
         // Add time frame selection buttons
         JPanel timeFramePanel = new JPanel();
         String[] timeFrames = {"1W", "1M", "2M", "3M", "6M", "1Y"};
@@ -41,6 +47,7 @@ public class Main {
         panel.add(timeFramePanel, BorderLayout.NORTH); // Add time frame buttons to the top
         panel.add(chartPanel, BorderLayout.CENTER);
         panel.add(portfolioButton, BorderLayout.SOUTH);
+        panel.add(stockScreenerButton, BorderLayout.EAST); // Add the new button to the right
 
         frame.add(panel);
         frame.setLocationRelativeTo(null);
