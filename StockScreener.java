@@ -1,6 +1,7 @@
 package afin.jstocks;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,14 +28,15 @@ public class StockScreener {
     private JTextField payoutRatioMinField;
     private JTextField payoutRatioMaxField;
     private JTextField marketCountryField;
-    private JTextArea resultArea;
+    private JTable resultTable;
+    private DefaultTableModel tableModel;
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
 
     public void createAndShowGUI() {
         JFrame frame = new JFrame("Stock Screener");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(1000, 600); // Adjust the frame size
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
@@ -160,9 +162,9 @@ public class StockScreener {
         panel.add(searchButton, constraints);
 
         row++;
-        resultArea = new JTextArea();
-        resultArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(resultArea);
+        tableModel = new DefaultTableModel(new String[]{"Symbol", "Company Name", "PE", "PB", "PEG", "Dividend Yield"}, 0);
+        resultTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(resultTable);
         constraints.gridx = 0;
         constraints.gridy = row;
         constraints.gridwidth = 2;
@@ -205,16 +207,23 @@ public class StockScreener {
         String payoutRatioMax = payoutRatioMaxField.getText();
         String marketCountry = marketCountryField.getText();
 
-        List<String> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, peRatioMin, peRatioMax, pbRatioMin, pbRatioMax, payoutRatioMin, payoutRatioMax, marketCountry);
+        List<JSONObject> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, peRatioMin, peRatioMax, pbRatioMin, pbRatioMax, payoutRatioMin, payoutRatioMax, marketCountry);
 
-        resultArea.setText("");
-        for (String stock : filteredStocks) {
-            resultArea.append(stock + "\n");
+        tableModel.setRowCount(0); // Clear existing rows
+        for (JSONObject stock : filteredStocks) {
+            tableModel.addRow(new Object[]{
+                stock.getString("symbol"),
+                stock.getString("companyName"),
+                stock.getDouble("peRatio"),
+                stock.getDouble("pbRatio"),
+                stock.getDouble("pegRatio"),
+                stock.getDouble("dividendYield")
+            });
         }
     }
 
-    private List<String> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax, String peRatioMin, String peRatioMax, String pbRatioMin, String pbRatioMax, String payoutRatioMin, String payoutRatioMax, String marketCountry) {
-        List<String> stocks = new ArrayList<>();
+    private List<JSONObject> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax, String peRatioMin, String peRatioMax, String pbRatioMin, String pbRatioMax, String payoutRatioMin, String payoutRatioMax, String marketCountry) {
+        List<JSONObject> stocks = new ArrayList<>();
         try {
             String urlString = String.format("https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan=%s&marketCapLessThan=%s&dividendMoreThan=%s&dividendLessThan=%s&pegMoreThan=%s&pegLessThan=%s&priceEarningsMoreThan=%s&priceEarningsLessThan=%s&priceToBookMoreThan=%s&priceToBookLessThan=%s&payoutMoreThan=%s&payoutLessThan=%s&country=%s&apikey=%s",
                     marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, peRatioMin, peRatioMax, pbRatioMin, pbRatioMax, payoutRatioMin, payoutRatioMax, marketCountry, API_KEY);
@@ -233,7 +242,7 @@ public class StockScreener {
             JSONArray jsonArray = new JSONArray(content.toString());
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
-                stocks.add(jsonObject.getString("symbol"));
+                stocks.add(jsonObject);
             }
         } catch (Exception e) {
             e.printStackTrace();
