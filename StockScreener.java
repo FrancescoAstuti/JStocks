@@ -20,6 +20,13 @@ public class StockScreener {
     private JTextField dividendYieldMaxField;
     private JTextField pegRatioMinField;
     private JTextField pegRatioMaxField;
+    private JTextField peRatioMinField;
+    private JTextField peRatioMaxField;
+    private JTextField pbRatioMinField;
+    private JTextField pbRatioMaxField;
+    private JTextField payoutRatioMinField;
+    private JTextField payoutRatioMaxField;
+    private JTextField marketCountryField;
     private JTextArea resultArea;
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
@@ -29,32 +36,120 @@ public class StockScreener {
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(800, 600);
 
-        JPanel panel = new JPanel(new GridLayout(8, 2));
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.insets = new Insets(5, 5, 5, 5);
 
-        panel.add(new JLabel("Market Cap Min:"));
+        int row = 0;
+
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Market Cap Min:"), constraints);
         marketCapMinField = new JTextField();
-        panel.add(marketCapMinField);
+        constraints.gridx = 1;
+        panel.add(marketCapMinField, constraints);
 
-        panel.add(new JLabel("Market Cap Max:"));
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Market Cap Max:"), constraints);
         marketCapMaxField = new JTextField();
-        panel.add(marketCapMaxField);
+        constraints.gridx = 1;
+        panel.add(marketCapMaxField, constraints);
 
-        panel.add(new JLabel("Dividend Yield Min:"));
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Dividend Yield Min:"), constraints);
         dividendYieldMinField = new JTextField();
-        panel.add(dividendYieldMinField);
+        constraints.gridx = 1;
+        panel.add(dividendYieldMinField, constraints);
 
-        panel.add(new JLabel("Dividend Yield Max:"));
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Dividend Yield Max:"), constraints);
         dividendYieldMaxField = new JTextField();
-        panel.add(dividendYieldMaxField);
+        constraints.gridx = 1;
+        panel.add(dividendYieldMaxField, constraints);
 
-        panel.add(new JLabel("PEG Ratio Min:"));
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("PEG Ratio Min:"), constraints);
         pegRatioMinField = new JTextField();
-        panel.add(pegRatioMinField);
+        constraints.gridx = 1;
+        panel.add(pegRatioMinField, constraints);
 
-        panel.add(new JLabel("PEG Ratio Max:"));
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("PEG Ratio Max:"), constraints);
         pegRatioMaxField = new JTextField();
-        panel.add(pegRatioMaxField);
+        constraints.gridx = 1;
+        panel.add(pegRatioMaxField, constraints);
 
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("P/E Ratio Min:"), constraints);
+        peRatioMinField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(peRatioMinField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("P/E Ratio Max:"), constraints);
+        peRatioMaxField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(peRatioMaxField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("P/B Ratio Min:"), constraints);
+        pbRatioMinField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(pbRatioMinField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("P/B Ratio Max:"), constraints);
+        pbRatioMaxField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(pbRatioMaxField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Payout Ratio Min:"), constraints);
+        payoutRatioMinField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(payoutRatioMinField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Payout Ratio Max:"), constraints);
+        payoutRatioMaxField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(payoutRatioMaxField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        panel.add(new JLabel("Market Country:"), constraints);
+        marketCountryField = new JTextField();
+        constraints.gridx = 1;
+        panel.add(marketCountryField, constraints);
+
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        constraints.gridwidth = 2;
         JButton searchButton = new JButton("Search");
         searchButton.addActionListener(new ActionListener() {
             @Override
@@ -62,13 +157,24 @@ public class StockScreener {
                 searchStocks();
             }
         });
-        panel.add(searchButton);
+        panel.add(searchButton, constraints);
 
+        row++;
         resultArea = new JTextArea();
         resultArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(resultArea);
-        panel.add(scrollPane);
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        constraints.gridwidth = 2;
+        constraints.weighty = 1;
+        constraints.fill = GridBagConstraints.BOTH;
+        panel.add(scrollPane, constraints);
 
+        row++;
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        constraints.gridwidth = 2;
+        constraints.weighty = 0;
         JButton overviewButton = new JButton("Return to Overview");
         overviewButton.addActionListener(new ActionListener() {
             @Override
@@ -77,7 +183,7 @@ public class StockScreener {
                 Main.showOverview();
             }
         });
-        panel.add(overviewButton);
+        panel.add(overviewButton, constraints);
 
         frame.add(panel);
         frame.setLocationRelativeTo(null);
@@ -91,8 +197,15 @@ public class StockScreener {
         String dividendYieldMax = dividendYieldMaxField.getText();
         String pegRatioMin = pegRatioMinField.getText();
         String pegRatioMax = pegRatioMaxField.getText();
+        String peRatioMin = peRatioMinField.getText();
+        String peRatioMax = peRatioMaxField.getText();
+        String pbRatioMin = pbRatioMinField.getText();
+        String pbRatioMax = pbRatioMaxField.getText();
+        String payoutRatioMin = payoutRatioMinField.getText();
+        String payoutRatioMax = payoutRatioMaxField.getText();
+        String marketCountry = marketCountryField.getText();
 
-        List<String> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax);
+        List<String> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, peRatioMin, peRatioMax, pbRatioMin, pbRatioMax, payoutRatioMin, payoutRatioMax, marketCountry);
 
         resultArea.setText("");
         for (String stock : filteredStocks) {
@@ -100,11 +213,11 @@ public class StockScreener {
         }
     }
 
-    private List<String> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax) {
+    private List<String> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax, String peRatioMin, String peRatioMax, String pbRatioMin, String pbRatioMax, String payoutRatioMin, String payoutRatioMax, String marketCountry) {
         List<String> stocks = new ArrayList<>();
         try {
-            String urlString = String.format("https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan=%s&marketCapLessThan=%s&dividendMoreThan=%s&dividendLessThan=%s&pegMoreThan=%s&pegLessThan=%s&apikey=%s",
-                    marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, API_KEY);
+            String urlString = String.format("https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan=%s&marketCapLessThan=%s&dividendMoreThan=%s&dividendLessThan=%s&pegMoreThan=%s&pegLessThan=%s&priceEarningsMoreThan=%s&priceEarningsLessThan=%s&priceToBookMoreThan=%s&priceToBookLessThan=%s&payoutMoreThan=%s&payoutLessThan=%s&country=%s&apikey=%s",
+                    marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, peRatioMin, peRatioMax, pbRatioMin, pbRatioMax, payoutRatioMin, payoutRatioMax, marketCountry, API_KEY);
             URL url = new URL(urlString);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
