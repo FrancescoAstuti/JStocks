@@ -105,6 +105,9 @@ public class StockScreener {
         try {
             String urlString = String.format("https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan=%s&marketCapLessThan=%s&dividendMoreThan=%s&dividendLessThan=%s&pegMoreThan=%s&pegLessThan=%s&apikey=%s",
                     marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, API_KEY);
+
+            System.out.println("Constructed URL: " + urlString); // Debugging log
+
             URL url = new URL(urlString);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -117,10 +120,16 @@ public class StockScreener {
             }
             in.close();
 
+            System.out.println("API Response: " + content.toString()); // Debugging log
+
             JSONArray jsonArray = new JSONArray(content.toString());
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
-                stocks.add(jsonObject.getString("symbol"));
+                String stockInfo = String.format("Ticker: %s, Name: %s, Market Cap: %d",
+                        jsonObject.getString("symbol"),
+                        jsonObject.getString("companyName"),
+                        jsonObject.getLong("marketCap"));
+                stocks.add(stockInfo);
             }
         } catch (Exception e) {
             e.printStackTrace();
