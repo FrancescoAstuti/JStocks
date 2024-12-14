@@ -81,7 +81,7 @@ public class StockScreener {
 
         mainPanel.add(settingsPanel, BorderLayout.WEST);
 
-        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Capitalization", "Dividend Yield"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Capitalization", "Dividend Yield", "PEG Ratio"}, 0);
         resultTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(resultTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -132,7 +132,8 @@ public class StockScreener {
                 String ticker = jsonObject.getString("symbol");
                 String capitalization = String.valueOf(jsonObject.getLong("marketCap"));
                 String dividendYield = String.valueOf(jsonObject.optDouble("dividendYield", 0.0));
-                stocks.add(new String[]{name, ticker, capitalization, dividendYield});
+                String pegRatio = String.valueOf(jsonObject.optDouble("pegRatio", 0.0));
+                stocks.add(new String[]{name, ticker, capitalization, dividendYield, pegRatio});
             }
         } catch (Exception e) {
             e.printStackTrace();
