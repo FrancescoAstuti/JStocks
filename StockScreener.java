@@ -1,6 +1,7 @@
 package afin.jstocks;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -20,40 +21,44 @@ public class StockScreener {
     private JTextField dividendYieldMaxField;
     private JTextField pegRatioMinField;
     private JTextField pegRatioMaxField;
-    private JTextArea resultArea;
+    private JTable resultTable;
+    private DefaultTableModel tableModel;
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
 
     public void createAndShowGUI() {
         JFrame frame = new JFrame("Stock Screener");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(1000, 800);
 
-        JPanel panel = new JPanel(new GridLayout(8, 2));
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
-        panel.add(new JLabel("Market Cap Min:"));
+        JPanel settingsPanel = new JPanel(new GridLayout(8, 2));
+        settingsPanel.setPreferredSize(new Dimension(300, 800));
+
+        settingsPanel.add(new JLabel("Market Cap Min:"));
         marketCapMinField = new JTextField();
-        panel.add(marketCapMinField);
+        settingsPanel.add(marketCapMinField);
 
-        panel.add(new JLabel("Market Cap Max:"));
+        settingsPanel.add(new JLabel("Market Cap Max:"));
         marketCapMaxField = new JTextField();
-        panel.add(marketCapMaxField);
+        settingsPanel.add(marketCapMaxField);
 
-        panel.add(new JLabel("Dividend Yield Min:"));
+        settingsPanel.add(new JLabel("Dividend Yield Min:"));
         dividendYieldMinField = new JTextField();
-        panel.add(dividendYieldMinField);
+        settingsPanel.add(dividendYieldMinField);
 
-        panel.add(new JLabel("Dividend Yield Max:"));
+        settingsPanel.add(new JLabel("Dividend Yield Max:"));
         dividendYieldMaxField = new JTextField();
-        panel.add(dividendYieldMaxField);
+        settingsPanel.add(dividendYieldMaxField);
 
-        panel.add(new JLabel("PEG Ratio Min:"));
+        settingsPanel.add(new JLabel("PEG Ratio Min:"));
         pegRatioMinField = new JTextField();
-        panel.add(pegRatioMinField);
+        settingsPanel.add(pegRatioMinField);
 
-        panel.add(new JLabel("PEG Ratio Max:"));
+        settingsPanel.add(new JLabel("PEG Ratio Max:"));
         pegRatioMaxField = new JTextField();
-        panel.add(pegRatioMaxField);
+        settingsPanel.add(pegRatioMaxField);
 
         JButton searchButton = new JButton("Search");
         searchButton.addActionListener(new ActionListener() {
@@ -62,12 +67,7 @@ public class StockScreener {
                 searchStocks();
             }
         });
-        panel.add(searchButton);
-
-        resultArea = new JTextArea();
-        resultArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(resultArea);
-        panel.add(scrollPane);
+        settingsPanel.add(searchButton);
 
         JButton overviewButton = new JButton("Return to Overview");
         overviewButton.addActionListener(new ActionListener() {
@@ -77,9 +77,16 @@ public class StockScreener {
                 Main.showOverview();
             }
         });
-        panel.add(overviewButton);
+        settingsPanel.add(overviewButton);
 
-        frame.add(panel);
+        mainPanel.add(settingsPanel, BorderLayout.WEST);
+
+        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Capitalization", "Dividend Yield"}, 0);
+        resultTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(resultTable);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        frame.add(mainPanel);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
@@ -92,21 +99,19 @@ public class StockScreener {
         String pegRatioMin = pegRatioMinField.getText();
         String pegRatioMax = pegRatioMaxField.getText();
 
-        List<String> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax);
+        List<String[]> filteredStocks = fetchFilteredStocks(marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax);
 
-        resultArea.setText("");
-        for (String stock : filteredStocks) {
-            resultArea.append(stock + "\n");
+        tableModel.setRowCount(0);
+        for (String[] stock : filteredStocks) {
+            tableModel.addRow(stock);
         }
     }
 
-    private List<String> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax) {
-        List<String> stocks = new ArrayList<>();
+    private List<String[]> fetchFilteredStocks(String marketCapMin, String marketCapMax, String dividendYieldMin, String dividendYieldMax, String pegRatioMin, String pegRatioMax) {
+        List<String[]> stocks = new ArrayList<>();
         try {
             String urlString = String.format("https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan=%s&marketCapLessThan=%s&dividendMoreThan=%s&dividendLessThan=%s&pegMoreThan=%s&pegLessThan=%s&apikey=%s",
                     marketCapMin, marketCapMax, dividendYieldMin, dividendYieldMax, pegRatioMin, pegRatioMax, API_KEY);
-
-            System.out.println("Constructed URL: " + urlString); // Debugging log
 
             URL url = new URL(urlString);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -120,16 +125,14 @@ public class StockScreener {
             }
             in.close();
 
-            System.out.println("API Response: " + content.toString()); // Debugging log
-
             JSONArray jsonArray = new JSONArray(content.toString());
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
-                String stockInfo = String.format("Ticker: %s, Name: %s, Market Cap: %d",
-                        jsonObject.getString("symbol"),
-                        jsonObject.getString("companyName"),
-                        jsonObject.getLong("marketCap"));
-                stocks.add(stockInfo);
+                String name = jsonObject.getString("companyName");
+                String ticker = jsonObject.getString("symbol");
+                String capitalization = String.valueOf(jsonObject.getLong("marketCap"));
+                String dividendYield = String.valueOf(jsonObject.optDouble("dividendYield", 0.0));
+                stocks.add(new String[]{name, ticker, capitalization, dividendYield});
             }
         } catch (Exception e) {
             e.printStackTrace();
