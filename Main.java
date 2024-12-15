@@ -40,6 +40,12 @@ public class Main {
             stockScreener.createAndShowGUI();
         });
 
+        JButton watchlistButton = new JButton("Watchlist");
+        watchlistButton.addActionListener(e -> {
+            Watchlist watchlist = new Watchlist();
+            watchlist.createAndShowGUI();
+        });
+
         JPanel timeFramePanel = new JPanel();
         String[] timeFrames = {"1W", "1M", "2M", "3M", "6M", "1Y"};
         for (String timeFrame : timeFrames) {
@@ -53,6 +59,7 @@ public class Main {
         panel.add(chartPanel, BorderLayout.CENTER);
         panel.add(portfolioButton, BorderLayout.SOUTH);
         panel.add(stockScreenerButton, BorderLayout.EAST);
+        panel.add(watchlistButton, BorderLayout.WEST);
 
         overviewFrame.add(panel);
         overviewFrame.setLocationRelativeTo(null);

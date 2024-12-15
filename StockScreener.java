@@ -38,26 +38,32 @@ public class StockScreener {
 
         settingsPanel.add(new JLabel("Market Cap Min:"));
         marketCapMinField = new JTextField();
+        marketCapMinField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(marketCapMinField);
 
         settingsPanel.add(new JLabel("Market Cap Max:"));
         marketCapMaxField = new JTextField();
+        marketCapMaxField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(marketCapMaxField);
 
         settingsPanel.add(new JLabel("Dividend Yield Min:"));
         dividendYieldMinField = new JTextField();
+        dividendYieldMinField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(dividendYieldMinField);
 
         settingsPanel.add(new JLabel("Dividend Yield Max:"));
         dividendYieldMaxField = new JTextField();
+        dividendYieldMaxField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(dividendYieldMaxField);
 
         settingsPanel.add(new JLabel("PEG Ratio Min:"));
         pegRatioMinField = new JTextField();
+        pegRatioMinField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(pegRatioMinField);
 
         settingsPanel.add(new JLabel("PEG Ratio Max:"));
         pegRatioMaxField = new JTextField();
+        pegRatioMaxField.setPreferredSize(new Dimension(100, 20));
         settingsPanel.add(pegRatioMaxField);
 
         JButton searchButton = new JButton("Search");
@@ -131,8 +137,36 @@ public class StockScreener {
                 String name = jsonObject.getString("companyName");
                 String ticker = jsonObject.getString("symbol");
                 String capitalization = String.valueOf(jsonObject.getLong("marketCap"));
-                String dividendYield = String.valueOf(jsonObject.optDouble("dividendYield", 0.0));
-                String pegRatio = String.valueOf(jsonObject.optDouble("pegRatio", 0.0));
+
+                // Fetch key metrics for each ticker
+                String keyMetricsUrl = String.format("https://financialmodelingprep.com/api/v3/key-metrics-ttm/%s?apikey=%s", ticker, API_KEY);
+                URL keyMetricsEndpoint = new URL(keyMetricsUrl);
+                HttpURLConnection keyMetricsConnection = (HttpURLConnection) keyMetricsEndpoint.openConnection();
+                keyMetricsConnection.setRequestMethod("GET");
+
+                BufferedReader keyMetricsIn = new BufferedReader(new InputStreamReader(keyMetricsConnection.getInputStream()));
+                StringBuilder keyMetricsContent = new StringBuilder();
+                while ((inputLine = keyMetricsIn.readLine()) != null) {
+                    keyMetricsContent.append(inputLine);
+                }
+                keyMetricsIn.close();
+
+                JSONArray keyMetricsArray = new JSONArray(keyMetricsContent.toString());
+                JSONObject keyMetricsObject = keyMetricsArray.getJSONObject(0);
+
+                // Print the fetched JSON object for debugging
+                System.out.println("JSON response for " + ticker + ": " + keyMetricsObject.toString());
+
+                String dividendYield = String.valueOf(keyMetricsObject.optDouble("dividendYield", 0.0));
+                String pegRatio = String.valueOf(keyMetricsObject.optDouble("pegRatio", 0.0));
+
+                // Print fetched data to the console
+                System.out.println("Fetched data for " + ticker + ":");
+                System.out.println("Name: " + name);
+                System.out.println("Capitalization: " + capitalization);
+                System.out.println("Dividend Yield: " + dividendYield);
+                System.out.println("PEG Ratio: " + pegRatio);
+
                 stocks.add(new String[]{name, ticker, capitalization, dividendYield, pegRatio});
             }
         } catch (Exception e) {
