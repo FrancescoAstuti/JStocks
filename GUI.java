@@ -57,7 +57,7 @@ public class GUI {
 
         // Enable sorting with custom comparators
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-        sorter.setComparator(1, Comparator.comparingInt(o -> Integer.parseInt(o.toString()))); // Quantity column
+        sorter.setComparator(1, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // Quantity column
         sorter.setComparator(2, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // Purchase Price column
         sorter.setComparator(3, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // Current Price column
         sorter.setComparator(4, Comparator.comparingDouble(o -> Double.parseDouble(o.toString()))); // P/L (%) column
@@ -230,7 +230,7 @@ public class GUI {
     private void addStockLot() {
         try {
             String ticker = tickerField.getText().toUpperCase();
-            int quantity = Integer.parseInt(quantityField.getText());
+            double quantity = Double.parseDouble(quantityField.getText()); // Changed from int to double
             double purchasePrice = round(Double.parseDouble(purchasePriceField.getText()), 2);
             Double currentPrice = GetPrice.getCurrentPrice(ticker);
 
@@ -240,7 +240,7 @@ public class GUI {
             }
 
             currentPrice = round(currentPrice, 2);
-            stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+            stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice)); // Changed quantity type to double
             updateTable();
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(null, "Please enter valid numbers", "Error", JOptionPane.ERROR_MESSAGE);
@@ -255,7 +255,7 @@ public class GUI {
             int modelRow = table.convertRowIndexToModel(viewRow);
             try {
                 String ticker = tickerField.getText().toUpperCase();
-                int quantity = Integer.parseInt(quantityField.getText());
+                double quantity = Double.parseDouble(quantityField.getText()); // Changed from int to double
                 double purchasePrice = round(Double.parseDouble(purchasePriceField.getText()), 2);
                 Double currentPrice = round(GetPrice.getCurrentPrice(ticker), 2);
 
@@ -266,7 +266,7 @@ public class GUI {
 
                 StockLot stockLot = stockLots.get(modelRow);
                 stockLot.setTicker(ticker);
-                stockLot.setQuantity(quantity);
+                stockLot.setQuantity(quantity); // Changed quantity type to double
                 stockLot.setPurchasePrice(purchasePrice);
                 stockLot.setCurrentPrice(currentPrice);
                 updateTable();
@@ -356,10 +356,10 @@ public class GUI {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 String ticker = jsonObject.getString("ticker");
-                int quantity = jsonObject.getInt("quantity");
+                double quantity = jsonObject.getDouble("quantity"); // Changed from int to double
                 double purchasePrice = jsonObject.getDouble("purchasePrice");
                 double currentPrice = jsonObject.getDouble("currentPrice");
-                stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+                stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice)); // Changed quantity type to double
             }
             System.out.println("Stock lots loaded successfully.");
         } catch (IOException e) {

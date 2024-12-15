@@ -4,11 +4,11 @@ import java.util.List;
 
 public class StockLot {
     private String ticker;
-    private int quantity;
+    private double quantity; // Changed from int to double
     private double purchasePrice;
     private double currentPrice;
 
-    public StockLot(String ticker, int quantity, double purchasePrice, double currentPrice) {
+    public StockLot(String ticker, double quantity, double purchasePrice, double currentPrice) { // Changed parameter type to double
         this.ticker = ticker;
         this.quantity = quantity;
         this.purchasePrice = purchasePrice;
@@ -23,11 +23,11 @@ public class StockLot {
         this.ticker = ticker;
     }
 
-    public int getQuantity() {
+    public double getQuantity() { // Changed return type to double
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(double quantity) { // Changed parameter type to double
         this.quantity = quantity;
     }
 

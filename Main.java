@@ -65,4 +65,9 @@ public class Main {
         overviewFrame.setLocationRelativeTo(null);
         overviewFrame.setVisible(true);
     }
+
+    public void addStockToPortfolio(String ticker, double quantity, double purchasePrice, double currentPrice) {
+        StockLot stockLot = new StockLot(ticker, quantity, purchasePrice, currentPrice);
+        stockLots.add(stockLot);
+    }
 }
