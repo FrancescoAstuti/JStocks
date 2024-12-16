@@ -5,6 +5,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -32,6 +35,7 @@ public class Watchlist {
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("Add Stock");
         JButton deleteButton = new JButton("Delete Stock");
+        JButton refreshButton = new JButton("Refresh");
 
         addButton.addActionListener(new ActionListener() {
             @Override
@@ -47,13 +51,23 @@ public class Watchlist {
             }
         });
 
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                refreshWatchlist();
+            }
+        });
+
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
+        buttonPanel.add(refreshButton);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         frame.add(mainPanel);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
+        loadWatchlist();
     }
 
     private void addStock() {
@@ -68,6 +82,7 @@ public class Watchlist {
                     double change = stockData.getDouble("change");
                     double volume = stockData.getDouble("volume");
                     tableModel.addRow(new Object[]{name, ticker, price, change, volume});
+                    saveWatchlist();
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -82,9 +97,14 @@ public class Watchlist {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
             tableModel.removeRow(selectedRow);
+            saveWatchlist();
         } else {
             JOptionPane.showMessageDialog(null, "No stock selected. Please select a stock to delete.", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void refreshWatchlist() {
+        saveWatchlist();
     }
 
     private JSONObject fetchStockData(String ticker) {
@@ -117,5 +137,50 @@ public class Watchlist {
             }
         }
         return null;
+    }
+
+    private void saveWatchlist() {
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("name", tableModel.getValueAt(i, 0));
+            jsonObject.put("ticker", tableModel.getValueAt(i, 1));
+            jsonObject.put("price", tableModel.getValueAt(i, 2));
+            jsonObject.put("change", tableModel.getValueAt(i, 3));
+            jsonObject.put("volume", tableModel.getValueAt(i, 4));
+            jsonArray.put(jsonObject);
+        }
+
+        try (FileWriter file = new FileWriter("watchlist.json")) {
+            file.write(jsonArray.toString());
+            file.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadWatchlist() {
+        File file = new File("watchlist.json");
+        if (file.exists()) {
+            try (FileReader reader = new FileReader(file)) {
+                Scanner scanner = new Scanner(reader);
+                String json = scanner.useDelimiter("\\Z").next();
+                scanner.close();
+
+                JSONArray jsonArray = new JSONArray(json);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    tableModel.addRow(new Object[]{
+                        jsonObject.getString("name"),
+                        jsonObject.getString("ticker"),
+                        jsonObject.getDouble("price"),
+                        jsonObject.getDouble("change"),
+                        jsonObject.getDouble("volume")
+                    });
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
