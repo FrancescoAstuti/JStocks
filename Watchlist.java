@@ -107,6 +107,33 @@ public class Watchlist { // Class definition
     }
 
     private void refreshWatchlist() { // Method to refresh watchlist
+        int rowCount = tableModel.getRowCount(); // Get the number of rows in the table
+        for (int i = 0; i < rowCount; i++) { // Loop through each row
+            String ticker = (String) tableModel.getValueAt(i, 1); // Get the ticker symbol from the row
+            try { // Try block
+                JSONObject stockData = fetchStockData(ticker); // Fetch stock data
+                if (stockData != null) { // If stock data is not null
+                    String name = stockData.getString("name"); // Get name from stock data
+                    double price = stockData.getDouble("price"); // Get price from stock data
+                    double change = stockData.getDouble("change"); // Get change from stock data
+                    double volume = stockData.getDouble("volume"); // Get volume from stock data
+                    JSONObject ratios = fetchStockRatios(ticker); // Fetch stock ratios
+                    double peTtm = ratios.optDouble("peRatioTTM", 0.0); // Get PE TTM from ratios
+                    double pbTtm = ratios.optDouble("pbRatioTTM", 0.0); // Get PB TTM from ratios
+                    tableModel.setValueAt(name, i, 0); // Update name in the table model
+                    tableModel.setValueAt(price, i, 2); // Update price in the table model
+                    tableModel.setValueAt(change, i, 3); // Update change in the table model
+                    tableModel.setValueAt(volume, i, 4); // Update volume in the table model
+                    tableModel.setValueAt(peTtm, i, 5); // Update PE TTM in the table model
+                    tableModel.setValueAt(pbTtm, i, 6); // Update PB TTM in the table model
+                } else { // If stock data is null
+                    JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE); // Show error message
+                }
+            } catch (Exception e) { // Catch block
+                e.printStackTrace(); // Print stack trace
+                JOptionPane.showMessageDialog(null, "Error fetching stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE); // Show error message
+            }
+        }
         saveWatchlist(); // Save watchlist data
     }
 
