@@ -27,7 +27,7 @@ public class Watchlist {
 
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Price", "Change", "Volume"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Price", "Change", "Volume", "PE TTM", "PB TTM"}, 0);
         watchlistTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -81,7 +81,9 @@ public class Watchlist {
                     double price = stockData.getDouble("price");
                     double change = stockData.getDouble("change");
                     double volume = stockData.getDouble("volume");
-                    tableModel.addRow(new Object[]{name, ticker, price, change, volume});
+                    double peTtm = stockData.optDouble("pe", 0.0);
+                    double pbTtm = stockData.optDouble("pb", 0.0);
+                    tableModel.addRow(new Object[]{name, ticker, price, change, volume, peTtm, pbTtm});
                     saveWatchlist();
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -148,6 +150,8 @@ public class Watchlist {
             jsonObject.put("price", tableModel.getValueAt(i, 2));
             jsonObject.put("change", tableModel.getValueAt(i, 3));
             jsonObject.put("volume", tableModel.getValueAt(i, 4));
+            jsonObject.put("peTtm", tableModel.getValueAt(i, 5));
+            jsonObject.put("pbTtm", tableModel.getValueAt(i, 6));
             jsonArray.put(jsonObject);
         }
 
@@ -175,7 +179,9 @@ public class Watchlist {
                         jsonObject.getString("ticker"),
                         jsonObject.getDouble("price"),
                         jsonObject.getDouble("change"),
-                        jsonObject.getDouble("volume")
+                        jsonObject.getDouble("volume"),
+                        jsonObject.getDouble("peTtm"),
+                        jsonObject.getDouble("pbTtm")
                     });
                 }
             } catch (IOException e) {
