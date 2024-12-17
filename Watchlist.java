@@ -31,11 +31,11 @@ public class Watchlist {
 
         tableModel = new DefaultTableModel(new Object[]{
             "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number",
-            "Analyst EPS Forecast", "Analyst Mean Price Target", "Analysts Number", "PEG Ratio"
+            "Analyst EPS Forecast", "Analyst Mean Price Target", "PEG Ratio"
         }, 0);
 
         watchlistTable = new JTable(tableModel);
-        watchlistTable.setRowHeight(60); // Set row height for better visibility
+        watchlistTable.setRowHeight(25); // Adjust row height
         watchlistTable.setAutoCreateRowSorter(true); // Enable column sorting
         watchlistTable.getTableHeader().setReorderingAllowed(true); // Enable column reordering
 
@@ -88,12 +88,11 @@ public class Watchlist {
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
                     double analystEpsForecast = round(ratios.optDouble("analystEpsForecast", 0.0), 2);
                     double analystMeanPriceTarget = round(ratios.optDouble("analystMeanPriceTarget", 0.0), 2);
-                    int analystsNumber = ratios.optInt("analystsNumber", 0);
                     double pegRatio = round(ratios.optDouble("pegRatioTTM", 0.0), 2);
 
                     tableModel.addRow(new Object[]{
                         name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber,
-                        analystEpsForecast, analystMeanPriceTarget, analystsNumber, pegRatio
+                        analystEpsForecast, analystMeanPriceTarget, pegRatio
                     });
                     saveWatchlist();
                 } else {
@@ -133,7 +132,6 @@ public class Watchlist {
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
                     double analystEpsForecast = round(ratios.optDouble("analystEpsForecast", 0.0), 2);
                     double analystMeanPriceTarget = round(ratios.optDouble("analystMeanPriceTarget", 0.0), 2);
-                    int analystsNumber = ratios.optInt("analystsNumber", 0);
                     double pegRatio = round(ratios.optDouble("pegRatioTTM", 0.0), 2);
 
                     tableModel.setValueAt(name, i, 0);
@@ -145,8 +143,7 @@ public class Watchlist {
                     tableModel.setValueAt(grahamNumber, i, 7);
                     tableModel.setValueAt(analystEpsForecast, i, 8);
                     tableModel.setValueAt(analystMeanPriceTarget, i, 9);
-                    tableModel.setValueAt(analystsNumber, i, 10);
-                    tableModel.setValueAt(pegRatio, i, 11);
+                    tableModel.setValueAt(pegRatio, i, 10);
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -236,8 +233,7 @@ public class Watchlist {
             jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
             jsonObject.put("analystEpsForecast", tableModel.getValueAt(i, 8));
             jsonObject.put("analystMeanPriceTarget", tableModel.getValueAt(i, 9));
-            jsonObject.put("analystsNumber", tableModel.getValueAt(i, 10));
-            jsonObject.put("pegRatio", tableModel.getValueAt(i, 11));
+            jsonObject.put("pegRatio", tableModel.getValueAt(i, 10));
             jsonArray.put(jsonObject);
         }
 
@@ -271,7 +267,6 @@ public class Watchlist {
                         jsonObject.optDouble("grahamNumber", 0.0),
                         jsonObject.optDouble("analystEpsForecast", 0.0),
                         jsonObject.optDouble("analystMeanPriceTarget", 0.0),
-                        jsonObject.optInt("analystsNumber", 0),
                         jsonObject.optDouble("pegRatio", 0.0)
                     });
                 }
