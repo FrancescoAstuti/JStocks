@@ -2,6 +2,7 @@ package afin.jstocks;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -31,7 +32,14 @@ public class Watchlist {
 
         tableModel = new DefaultTableModel(new Object[]{
             "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number", "Avg PB Ratio (20 Years)"
-        }, 0);
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // Allow editing of the "Avg PB Ratio (20 Years)" column
+                return column == 8;
+            }
+        };
+        
         watchlistTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -88,8 +96,8 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    double avgPbRatio = fetchAvgPbRatio(ticker);
-                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, avgPbRatio});
+                    
+                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, 0.0});
                     saveWatchlist();
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -126,7 +134,6 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    double avgPbRatio = fetchAvgPbRatio(ticker);
                     tableModel.setValueAt(name, i, 0);
                     tableModel.setValueAt(price, i, 2);
                     tableModel.setValueAt(peTtm, i, 3);
@@ -134,7 +141,6 @@ public class Watchlist {
                     tableModel.setValueAt(dividendYield, i, 5);
                     tableModel.setValueAt(payoutRatio, i, 6);
                     tableModel.setValueAt(grahamNumber, i, 7);
-                    tableModel.setValueAt(avgPbRatio, i, 8);
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -208,44 +214,6 @@ public class Watchlist {
             }
         }
         return null;
-    }
-
-    private double fetchAvgPbRatio(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/historical-key-metrics/%s?apikey=%s", ticker, API_KEY);
-        HttpURLConnection connection = null;
-        double sumPbRatio = 0.0;
-        int count = 0;
-
-        try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                Scanner scanner = new Scanner(url.openStream());
-                String response = scanner.useDelimiter("\\Z").next();
-                scanner.close();
-
-                JSONArray data = new JSONArray(response);
-                for (int i = 0; i < data.length() && i < 20; i++) { // Fetch last 20 years data
-                    JSONObject yearData = data.getJSONObject(i);
-                    if (yearData.has("pbRatio")) {
-                        sumPbRatio += yearData.getDouble("pbRatio");
-                        count++;
-                    }
-                }
-            } else {
-                throw new IOException("Failed to get valid response from API. Response Code: " + responseCode);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-        return count > 0 ? round(sumPbRatio / count, 2) : 0.0;
     }
 
     private void saveWatchlist() {
