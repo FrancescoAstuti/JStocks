@@ -1,19 +1,20 @@
 package afin.jstocks;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Properties;
 import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,25 +23,38 @@ public class Watchlist {
     private JTable watchlistTable;
     private DefaultTableModel tableModel;
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
+    private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
 
     public void createAndShowGUI() {
         JFrame frame = new JFrame("Watchlist");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(900, 600);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
 
         tableModel = new DefaultTableModel(new Object[]{
-            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number", "Avg PB Ratio (20 Years)"
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number", "Avg PB Ratio (20 Years)", "Avg PE Ratio (20 Years)"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Allow editing of the "Avg PB Ratio (20 Years)" column
-                return column == 8;
+                // Allow editing of the "Avg PB Ratio (20 Years)" and "Avg PE Ratio (20 Years)" columns
+                return column == 8 || column == 9;
             }
         };
-        
+
         watchlistTable = new JTable(tableModel);
+
+        // Enable sorting
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        watchlistTable.setRowSorter(sorter);
+
+        // Enable column reordering
+        watchlistTable.getTableHeader().setReorderingAllowed(true);
+
+        // Set custom cell renderer for Avg PB Ratio and Avg PE Ratio columns
+        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -79,7 +93,16 @@ public class Watchlist {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
+        // Load column settings after adding the table to the frame
+        loadColumnSettings();
         loadWatchlist();
+
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                saveColumnSettings();
+            }
+        });
     }
 
     private void addStock() {
@@ -96,8 +119,8 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    
-                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, 0.0});
+
+                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, 0.0, 0.0});
                     saveWatchlist();
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -229,6 +252,7 @@ public class Watchlist {
             jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
             jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
             jsonObject.put("avgPbRatio", tableModel.getValueAt(i, 8));
+            jsonObject.put("avgPeRatio", tableModel.getValueAt(i, 9));
             jsonArray.put(jsonObject);
         }
 
@@ -260,12 +284,50 @@ public class Watchlist {
                         jsonObject.optDouble("dividendYield", 0.0),
                         jsonObject.optDouble("payoutRatio", 0.0),
                         jsonObject.optDouble("grahamNumber", 0.0),
-                        jsonObject.optDouble("avgPbRatio", 0.0)
+                        jsonObject.optDouble("avgPbRatio", 0.0),
+                        jsonObject.optDouble("avgPeRatio", 0.0)
                     });
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private void saveColumnSettings() {
+        Properties props = new Properties();
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            TableColumn column = columnModel.getColumn(i);
+            props.setProperty("column" + column.getModelIndex() + ".width", Integer.toString(column.getWidth()));
+            props.setProperty("column" + column.getModelIndex() + ".index", Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
+        }
+
+        try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
+            props.store(out, "Column settings");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadColumnSettings() {
+        Properties props = new Properties();
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+
+        try (FileInputStream in = new FileInputStream(COLUMN_SETTINGS_FILE)) {
+            props.load(in);
+
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                TableColumn column = columnModel.getColumn(i);
+                int width = Integer.parseInt(props.getProperty("column" + column.getModelIndex() + ".width", Integer.toString(column.getWidth())));
+                int index = Integer.parseInt(props.getProperty("column" + column.getModelIndex() + ".index", Integer.toString(i)));
+
+                column.setPreferredWidth(width);
+                columnModel.moveColumn(columnModel.getColumnIndex(column.getIdentifier()), index);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -284,5 +346,18 @@ public class Watchlist {
                 new Watchlist().createAndShowGUI();
             }
         });
+    }
+
+    static class CustomCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof Double && (Double) value == 0.0) {
+                cell.setBackground(Color.YELLOW);
+            } else {
+                cell.setBackground(Color.WHITE);
+            }
+            return cell;
+        }
     }
 }
