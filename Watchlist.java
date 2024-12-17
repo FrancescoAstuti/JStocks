@@ -29,7 +29,10 @@ public class Watchlist {
 
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number",
+            "Analyst EPS Forecast", "Analyst Mean Price Target", "Analysts Number"
+        }, 0);
         watchlistTable = new JTable(tableModel);
         watchlistTable.setAutoCreateRowSorter(true); // Enable column sorting
         watchlistTable.getTableHeader().setReorderingAllowed(true); // Enable column reordering
@@ -81,7 +84,14 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber});
+                    double analystEpsForecast = round(ratios.optDouble("analystEpsForecast", 0.0), 2);
+                    double analystMeanPriceTarget = round(ratios.optDouble("analystMeanPriceTarget", 0.0), 2);
+                    int analystsNumber = ratios.optInt("analystsNumber", 0);
+
+                    tableModel.addRow(new Object[]{
+                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber,
+                        analystEpsForecast, analystMeanPriceTarget, analystsNumber
+                    });
                     saveWatchlist();
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -118,6 +128,10 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                    double analystEpsForecast = round(ratios.optDouble("analystEpsForecast", 0.0), 2);
+                    double analystMeanPriceTarget = round(ratios.optDouble("analystMeanPriceTarget", 0.0), 2);
+                    int analystsNumber = ratios.optInt("analystsNumber", 0);
+
                     tableModel.setValueAt(name, i, 0);
                     tableModel.setValueAt(price, i, 2);
                     tableModel.setValueAt(peTtm, i, 3);
@@ -125,6 +139,9 @@ public class Watchlist {
                     tableModel.setValueAt(dividendYield, i, 5);
                     tableModel.setValueAt(payoutRatio, i, 6);
                     tableModel.setValueAt(grahamNumber, i, 7);
+                    tableModel.setValueAt(analystEpsForecast, i, 8);
+                    tableModel.setValueAt(analystMeanPriceTarget, i, 9);
+                    tableModel.setValueAt(analystsNumber, i, 10);
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -212,6 +229,9 @@ public class Watchlist {
             jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
             jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
             jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
+            jsonObject.put("analystEpsForecast", tableModel.getValueAt(i, 8));
+            jsonObject.put("analystMeanPriceTarget", tableModel.getValueAt(i, 9));
+            jsonObject.put("analystsNumber", tableModel.getValueAt(i, 10));
             jsonArray.put(jsonObject);
         }
 
@@ -235,14 +255,17 @@ public class Watchlist {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
                     tableModel.addRow(new Object[]{
-                        jsonObject.getString("name"),
-                        jsonObject.getString("ticker"),
-                        jsonObject.getDouble("price"),
-                        jsonObject.getDouble("peTtm"),
-                        jsonObject.getDouble("pbTtm"),
-                        jsonObject.getDouble("dividendYield"),
-                        jsonObject.getDouble("payoutRatio"),
-                        jsonObject.getDouble("grahamNumber")
+                        jsonObject.optString("name", ""),
+                        jsonObject.optString("ticker", ""),
+                        jsonObject.optDouble("price", 0.0),
+                        jsonObject.optDouble("peTtm", 0.0),
+                        jsonObject.optDouble("pbTtm", 0.0),
+                        jsonObject.optDouble("dividendYield", 0.0),
+                        jsonObject.optDouble("payoutRatio", 0.0),
+                        jsonObject.optDouble("grahamNumber", 0.0),
+                        jsonObject.optDouble("analystEpsForecast", 0.0),
+                        jsonObject.optDouble("analystMeanPriceTarget", 0.0),
+                        jsonObject.optInt("analystsNumber", 0)
                     });
                 }
             } catch (IOException e) {
