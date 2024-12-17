@@ -14,6 +14,8 @@ import java.net.URL; // Importing URL class
 import java.util.Scanner; // Importing Scanner class
 import org.json.JSONArray; // Importing JSONArray class
 import org.json.JSONObject; // Importing JSONObject class
+import java.math.BigDecimal; // Importing BigDecimal class
+import java.math.RoundingMode; // Importing RoundingMode class
 
 public class Watchlist { // Class definition
     private JTable watchlistTable; // JTable object to display watchlist
@@ -27,7 +29,7 @@ public class Watchlist { // Class definition
 
         JPanel mainPanel = new JPanel(new BorderLayout()); // Creating main panel with BorderLayout
 
-        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Price", "Change", "Volume", "PE TTM", "PB TTM"}, 0); // Initializing table model with column names
+        tableModel = new DefaultTableModel(new Object[]{"Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number"}, 0); // Initializing table model with updated column names
         watchlistTable = new JTable(tableModel); // Creating JTable with table model
         JScrollPane scrollPane = new JScrollPane(watchlistTable); // Adding JTable to JScrollPane
         mainPanel.add(scrollPane, BorderLayout.CENTER); // Adding scroll pane to main panel
@@ -78,13 +80,14 @@ public class Watchlist { // Class definition
                 JSONObject stockData = fetchStockData(ticker); // Fetch stock data
                 if (stockData != null) { // If stock data is not null
                     String name = stockData.getString("name"); // Get name from stock data
-                    double price = stockData.getDouble("price"); // Get price from stock data
-                    double change = stockData.getDouble("change"); // Get change from stock data
-                    double volume = stockData.getDouble("volume"); // Get volume from stock data
+                    double price = round(stockData.getDouble("price"), 2); // Get and round price from stock data
                     JSONObject ratios = fetchStockRatios(ticker); // Fetch stock ratios
-                    double peTtm = ratios.optDouble("peRatioTTM", 0.0); // Get PE TTM from ratios
-                    double pbTtm = ratios.optDouble("pbRatioTTM", 0.0); // Get PB TTM from ratios
-                    tableModel.addRow(new Object[]{name, ticker, price, change, volume, peTtm, pbTtm}); // Add row to table model
+                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2); // Get and round PE TTM from ratios
+                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2); // Get and round PB TTM from ratios
+                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2); // Get and round Dividend Yield from ratios
+                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2); // Get and round Payout Ratio from ratios
+                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2); // Get and round Graham Number from ratios
+                    tableModel.addRow(new Object[]{name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber}); // Add row to table model
                     saveWatchlist(); // Save watchlist data
                 } else { // If stock data is null
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data.", "Error", JOptionPane.ERROR_MESSAGE); // Show error message
@@ -114,18 +117,20 @@ public class Watchlist { // Class definition
                 JSONObject stockData = fetchStockData(ticker); // Fetch stock data
                 if (stockData != null) { // If stock data is not null
                     String name = stockData.getString("name"); // Get name from stock data
-                    double price = stockData.getDouble("price"); // Get price from stock data
-                    double change = stockData.getDouble("change"); // Get change from stock data
-                    double volume = stockData.getDouble("volume"); // Get volume from stock data
+                    double price = round(stockData.getDouble("price"), 2); // Get and round price from stock data
                     JSONObject ratios = fetchStockRatios(ticker); // Fetch stock ratios
-                    double peTtm = ratios.optDouble("peRatioTTM", 0.0); // Get PE TTM from ratios
-                    double pbTtm = ratios.optDouble("pbRatioTTM", 0.0); // Get PB TTM from ratios
+                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2); // Get and round PE TTM from ratios
+                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2); // Get and round PB TTM from ratios
+                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2); // Get and round Dividend Yield from ratios
+                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2); // Get and round Payout Ratio from ratios
+                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2); // Get and round Graham Number from ratios
                     tableModel.setValueAt(name, i, 0); // Update name in the table model
                     tableModel.setValueAt(price, i, 2); // Update price in the table model
-                    tableModel.setValueAt(change, i, 3); // Update change in the table model
-                    tableModel.setValueAt(volume, i, 4); // Update volume in the table model
-                    tableModel.setValueAt(peTtm, i, 5); // Update PE TTM in the table model
-                    tableModel.setValueAt(pbTtm, i, 6); // Update PB TTM in the table model
+                    tableModel.setValueAt(peTtm, i, 3); // Update PE TTM in the table model
+                    tableModel.setValueAt(pbTtm, i, 4); // Update PB TTM in the table model
+                    tableModel.setValueAt(dividendYield, i, 5); // Update Dividend Yield in the table model
+                    tableModel.setValueAt(payoutRatio, i, 6); // Update Payout Ratio in the table model
+                    tableModel.setValueAt(grahamNumber, i, 7); // Update Graham Number in the table model
                 } else { // If stock data is null
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE); // Show error message
                 }
@@ -208,10 +213,11 @@ public class Watchlist { // Class definition
             jsonObject.put("name", tableModel.getValueAt(i, 0)); // Put name in JSONObject
             jsonObject.put("ticker", tableModel.getValueAt(i, 1)); // Put ticker in JSONObject
             jsonObject.put("price", tableModel.getValueAt(i, 2)); // Put price in JSONObject
-            jsonObject.put("change", tableModel.getValueAt(i, 3)); // Put change in JSONObject
-            jsonObject.put("volume", tableModel.getValueAt(i, 4)); // Put volume in JSONObject
-            jsonObject.put("peTtm", tableModel.getValueAt(i, 5)); // Put PE TTM in JSONObject
-            jsonObject.put("pbTtm", tableModel.getValueAt(i, 6)); // Put PB TTM in JSONObject
+            jsonObject.put("peTtm", tableModel.getValueAt(i, 3)); // Put PE TTM in JSONObject
+            jsonObject.put("pbTtm", tableModel.getValueAt(i, 4)); // Put PB TTM in JSONObject
+            jsonObject.put("dividendYield", tableModel.getValueAt(i, 5)); // Put Dividend Yield in JSONObject
+            jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6)); // Put Payout Ratio in JSONObject
+            jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7)); // Put Graham Number in JSONObject
             jsonArray.put(jsonObject); // Add JSONObject to JSONArray
         }
 
@@ -238,15 +244,24 @@ public class Watchlist { // Class definition
                         jsonObject.getString("name"), // Get name from JSONObject
                         jsonObject.getString("ticker"), // Get ticker from JSONObject
                         jsonObject.getDouble("price"), // Get price from JSONObject
-                        jsonObject.getDouble("change"), // Get change from JSONObject
-                        jsonObject.getDouble("volume"), // Get volume from JSONObject
                         jsonObject.getDouble("peTtm"), // Get PE TTM from JSONObject
-                        jsonObject.getDouble("pbTtm") // Get PB TTM from JSONObject
+                        jsonObject.getDouble("pbTtm"), // Get PB TTM from JSONObject
+                        jsonObject.getDouble("dividendYield"), // Get Dividend Yield from JSONObject
+                        jsonObject.getDouble("payoutRatio"), // Get Payout Ratio from JSONObject
+                        jsonObject.getDouble("grahamNumber") // Get Graham Number from JSONObject
                     });
                 }
             } catch (IOException e) { // Catch block
                 e.printStackTrace(); // Print stack trace
             }
         }
+    }
+
+    private double round(double value, int places) { // Method to round values to specified decimal places
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 }
