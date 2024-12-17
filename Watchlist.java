@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Comparator;
 import java.util.Properties;
 import java.util.Scanner;
 import org.json.JSONArray;
@@ -40,12 +41,31 @@ public class Watchlist {
                 // Allow editing of the "Avg PB Ratio (20 Years)" and "Avg PE Ratio (20 Years)" columns
                 return column == 8 || column == 9;
             }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // Specify the data type for each column
+                switch (columnIndex) {
+                    case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9:
+                        return Double.class;
+                    default:
+                        return String.class;
+                }
+            }
         };
 
         watchlistTable = new JTable(tableModel);
 
-        // Enable sorting
+        // Enable sorting with custom comparators for numerical columns
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        sorter.setComparator(2, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(3, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(4, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(5, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(6, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(7, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(8, Comparator.comparingDouble(o -> (Double) o));
+        sorter.setComparator(9, Comparator.comparingDouble(o -> (Double) o));
         watchlistTable.setRowSorter(sorter);
 
         // Enable column reordering
