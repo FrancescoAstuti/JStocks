@@ -35,7 +35,7 @@ public class Watchlist {
         JPanel mainPanel = new JPanel(new BorderLayout());
 
         tableModel = new DefaultTableModel(new Object[]{
-            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Dividend Yield", "Payout Ratio", "Graham Number", "Avg PB Ratio (20 Years)", "Avg PE Ratio (20 Years)"
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", "Payout Ratio", "Graham Number", "PB Avg", "PE Avg"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
