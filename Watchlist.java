@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Properties;
 import java.util.Scanner;
@@ -26,7 +25,6 @@ public class Watchlist {
     private DefaultTableModel tableModel;
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
-    private ArrayList<JCheckBox> checkBoxes;
     private JPanel columnControlPanel;
 
     public void createAndShowGUI() {
@@ -84,14 +82,12 @@ public class Watchlist {
         // Add column visibility control panel
         columnControlPanel = new JPanel();
         columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
-        checkBoxes = new ArrayList<>();
 
         TableColumnModel columnModel = watchlistTable.getColumnModel();
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
             JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
             int columnIndex = i;
             checkBox.addActionListener(e -> toggleColumnVisibility(columnIndex, checkBox.isSelected()));
-            checkBoxes.add(checkBox);
             columnControlPanel.add(checkBox);
         }
 
@@ -188,8 +184,13 @@ public class Watchlist {
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
-            tableModel.removeRow(selectedRow);
-            saveWatchlist();
+            int modelRow = watchlistTable.convertRowIndexToModel(selectedRow);
+            String stockName = (String) tableModel.getValueAt(modelRow, 0);
+            int response = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete " + stockName + "?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+            if (response == JOptionPane.YES_OPTION) {
+                tableModel.removeRow(modelRow);
+                saveWatchlist();
+            }
         } else {
             JOptionPane.showMessageDialog(null, "No stock selected. Please select a stock to delete.", "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -198,7 +199,8 @@ public class Watchlist {
     private void refreshWatchlist() {
         int rowCount = tableModel.getRowCount();
         for (int i = 0; i < rowCount; i++) {
-            String ticker = (String) tableModel.getValueAt(i, 1);
+            int modelRow = watchlistTable.convertRowIndexToModel(i);
+            String ticker = (String) tableModel.getValueAt(modelRow, 1);
             try {
                 JSONObject stockData = fetchStockData(ticker);
                 if (stockData != null) {
@@ -210,13 +212,13 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    tableModel.setValueAt(name, i, 0);
-                    tableModel.setValueAt(price, i, 2);
-                    tableModel.setValueAt(peTtm, i, 3);
-                    tableModel.setValueAt(pbTtm, i, 4);
-                    tableModel.setValueAt(dividendYield, i, 5);
-                    tableModel.setValueAt(payoutRatio, i, 6);
-                    tableModel.setValueAt(grahamNumber, i, 7);
+                    tableModel.setValueAt(name, modelRow, 0);
+                    tableModel.setValueAt(price, modelRow, 2);
+                    tableModel.setValueAt(peTtm, modelRow, 3);
+                    tableModel.setValueAt(pbTtm, modelRow, 4);
+                    tableModel.setValueAt(dividendYield, modelRow, 5);
+                    tableModel.setValueAt(payoutRatio, modelRow, 6);
+                    tableModel.setValueAt(grahamNumber, modelRow, 7);
                 } else {
                     JOptionPane.showMessageDialog(null, "Failed to fetch stock data for " + ticker, "Error", JOptionPane.ERROR_MESSAGE);
                 }
