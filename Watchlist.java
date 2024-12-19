@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Properties;
 import java.util.Scanner;
@@ -25,6 +26,8 @@ public class Watchlist {
     private DefaultTableModel tableModel;
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
+    private ArrayList<JCheckBox> checkBoxes;
+    private JPanel columnControlPanel;
 
     public void createAndShowGUI() {
         JFrame frame = new JFrame("Watchlist");
@@ -78,6 +81,22 @@ public class Watchlist {
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
+        // Add column visibility control panel
+        columnControlPanel = new JPanel();
+        columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
+        checkBoxes = new ArrayList<>();
+
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
+            int columnIndex = i;
+            checkBox.addActionListener(e -> toggleColumnVisibility(columnIndex, checkBox.isSelected()));
+            checkBoxes.add(checkBox);
+            columnControlPanel.add(checkBox);
+        }
+
+        mainPanel.add(columnControlPanel, BorderLayout.WEST);
+
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("Add Stock");
         JButton deleteButton = new JButton("Delete Stock");
@@ -123,6 +142,20 @@ public class Watchlist {
                 saveColumnSettings();
             }
         });
+    }
+
+    private void toggleColumnVisibility(int columnIndex, boolean visible) {
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        TableColumn column = columnModel.getColumn(columnIndex);
+        if (visible) {
+            column.setMinWidth(15);
+            column.setMaxWidth(Integer.MAX_VALUE);
+            column.setPreferredWidth(75);
+        } else {
+            column.setMinWidth(0);
+            column.setMaxWidth(0);
+            column.setPreferredWidth(0);
+        }
     }
 
     private void addStock() {
