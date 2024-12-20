@@ -1,5 +1,6 @@
 package afin.jstocks;
 
+import afin.jstocks.Estimates;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -152,51 +153,93 @@ private void toggleColumnVisibility(String columnName, boolean visible) {
         }
     }
 }
-    private void addStock() {
-        String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
-        if (ticker != null && !ticker.trim().isEmpty()) {
-            try {
-                JSONObject stockData = fetchStockData(ticker);
-                JSONObject epsEstimates = fetchEpsEstimates(ticker);
+private void addStock() {
+    String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
+    if (ticker != null && !ticker.trim().isEmpty()) {
+        try {
+            JSONObject stockData = fetchStockData(ticker);
+            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);  // Updated line
+            
+            if (stockData != null) {
+                String name = stockData.getString("name");
+                double price = round(stockData.getDouble("price"), 2);
+                JSONObject ratios = fetchStockRatios(ticker);
                 
-                if (stockData != null) {
-                    String name = stockData.getString("name");
-                    double price = round(stockData.getDouble("price"), 2);
-                    JSONObject ratios = fetchStockRatios(ticker);
-                    
-                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    
-                    // Handle EPS estimates with proper null checking
-                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                    double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
-                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
+                double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
+                double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
+                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
 
-                    tableModel.addRow(new Object[]{
-                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
-                        grahamNumber, 0.0, 0.0, epsNextYear, epsYear2, epsYear3
-                    });
-                    
-                    saveWatchlist();
-                } else {
-                    JOptionPane.showMessageDialog(null, 
-                        "Failed to fetch stock data for " + ticker, 
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+                tableModel.addRow(new Object[]{
+                    name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, 0.0, 0.0, epsNextYear, epsYear2, epsYear3
+                });
+                
+                saveWatchlist();
+            } else {
                 JOptionPane.showMessageDialog(null, 
-                    "Error fetching stock data: " + e.getMessage(), 
+                    "Failed to fetch stock data for " + ticker, 
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                "Error fetching stock data: " + e.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
+}
 
+private void refreshWatchlist() {
+    int rowCount = tableModel.getRowCount();
+    for (int i = 0; i < rowCount; i++) {
+        int modelRow = watchlistTable.convertRowIndexToModel(i);
+        String ticker = (String) tableModel.getValueAt(modelRow, 1);
+        try {
+            JSONObject stockData = fetchStockData(ticker);
+            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);  // Updated line
+            
+            if (stockData != null) {
+                String name = stockData.getString("name");
+                double price = round(stockData.getDouble("price"), 2);
+                JSONObject ratios = fetchStockRatios(ticker);
+                
+                double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
+                double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
+                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
+
+                tableModel.setValueAt(name, modelRow, 0);
+                tableModel.setValueAt(price, modelRow, 2);
+                tableModel.setValueAt(peTtm, modelRow, 3);
+                tableModel.setValueAt(pbTtm, modelRow, 4);
+                tableModel.setValueAt(dividendYield, modelRow, 5);
+                tableModel.setValueAt(payoutRatio, modelRow, 6);
+                tableModel.setValueAt(grahamNumber, modelRow, 7);
+                tableModel.setValueAt(epsNextYear, modelRow, 10);
+                tableModel.setValueAt(epsYear2, modelRow, 11);
+                tableModel.setValueAt(epsYear3, modelRow, 12);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                "Error refreshing data for " + ticker + ": " + e.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    saveWatchlist();
+}
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
@@ -219,51 +262,6 @@ private void toggleColumnVisibility(String columnName, boolean visible) {
         }
     }
 
-    private void refreshWatchlist() {
-        int rowCount = tableModel.getRowCount();
-        for (int i = 0; i < rowCount; i++) {
-            int modelRow = watchlistTable.convertRowIndexToModel(i);
-            String ticker = (String) tableModel.getValueAt(modelRow, 1);
-            try {
-                JSONObject stockData = fetchStockData(ticker);
-                JSONObject epsEstimates = fetchEpsEstimates(ticker);
-                
-                if (stockData != null) {
-                    String name = stockData.getString("name");
-                    double price = round(stockData.getDouble("price"), 2);
-                    JSONObject ratios = fetchStockRatios(ticker);
-                    
-                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    // Continue with refreshWatchlist method
-                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                    double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
-                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
-
-                    tableModel.setValueAt(name, modelRow, 0);
-                    tableModel.setValueAt(price, modelRow, 2);
-                    tableModel.setValueAt(peTtm, modelRow, 3);
-                    tableModel.setValueAt(pbTtm, modelRow, 4);
-                    tableModel.setValueAt(dividendYield, modelRow, 5);
-                    tableModel.setValueAt(payoutRatio, modelRow, 6);
-                    tableModel.setValueAt(grahamNumber, modelRow, 7);
-                    tableModel.setValueAt(epsNextYear, modelRow, 10);
-                    tableModel.setValueAt(epsYear2, modelRow, 11);
-                    tableModel.setValueAt(epsYear3, modelRow, 12);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null, 
-                    "Error refreshing data for " + ticker + ": " + e.getMessage(), 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        saveWatchlist();
-    }
 
     private JSONObject fetchStockData(String ticker) {
         String urlString = String.format("https://financialmodelingprep.com/api/v3/quote/%s?apikey=%s", ticker, API_KEY);
@@ -329,54 +327,6 @@ private void toggleColumnVisibility(String columnName, boolean visible) {
         return null;
     }
 
-    private JSONObject fetchEpsEstimates(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/analyst-estimates/%s?apikey=%s", ticker, API_KEY);
-        HttpURLConnection connection = null;
-
-        try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                Scanner scanner = new Scanner(url.openStream());
-                String response = scanner.useDelimiter("\\Z").next();
-                scanner.close();
-
-                JSONArray data = new JSONArray(response);
-                if (data.length() > 0) {
-                    JSONObject result = new JSONObject();
-                    JSONObject firstEstimate = data.getJSONObject(0);
-                    
-                    // Get EPS estimates for the next three years
-                    result.put("epsNextYear", firstEstimate.optDouble("estimatedEpsAvg", 0.0));
-                    
-                    // For year 2 and 3, we need to look at the subsequent entries if available
-                    if (data.length() > 1) {
-                        result.put("epsYear2", data.getJSONObject(1).optDouble("estimatedEpsAvg", 0.0));
-                    } else {
-                        result.put("epsYear2", 0.0);
-                    }
-                    
-                    if (data.length() > 2) {
-                        result.put("epsYear3", data.getJSONObject(2).optDouble("estimatedEpsAvg", 0.0));
-                    } else {
-                        result.put("epsYear3", 0.0);
-                    }
-                    
-                    return result;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-        return null;
-    }
     
 private void saveColumnSettings() {
     Properties props = new Properties();
