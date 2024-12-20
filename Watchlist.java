@@ -353,10 +353,28 @@ private void saveColumnSettings() {
     Properties props = new Properties();
     TableColumnModel columnModel = watchlistTable.getColumnModel();
 
-    for (int i = 0; i < columnModel.getColumnCount(); i++) {
-        TableColumn column = columnModel.getColumn(i);
-        props.setProperty("column." + column.getHeaderValue() + ".width", Integer.toString(column.getWidth()));
-        props.setProperty("column." + column.getHeaderValue() + ".index", Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
+    // Save visibility state by checking column width
+    for (int i = 0; i < tableModel.getColumnCount(); i++) {
+        String columnName = tableModel.getColumnName(i);
+        // A column is considered hidden if its width is 0
+        boolean isVisible = true;
+        try {
+            TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
+            isVisible = column.getWidth() > 0;
+        } catch (IllegalArgumentException e) {
+            // Column is not in the model, so it's hidden
+            isVisible = false;
+        }
+        
+        // Save visibility state
+        props.setProperty("column." + columnName + ".visible", Boolean.toString(isVisible));
+        
+        // If column is visible, save its width and index
+        if (isVisible) {
+            TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
+            props.setProperty("column." + columnName + ".width", Integer.toString(column.getWidth()));
+            props.setProperty("column." + columnName + ".index", Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
+        }
     }
 
     try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
@@ -373,13 +391,62 @@ private void loadColumnSettings() {
     try (FileInputStream in = new FileInputStream(COLUMN_SETTINGS_FILE)) {
         props.load(in);
 
-        for (int i = 0; i < columnModel.getColumnCount(); i++) {
-            TableColumn column = columnModel.getColumn(i);
-            int width = Integer.parseInt(props.getProperty("column." + column.getHeaderValue() + ".width", Integer.toString(column.getWidth())));
-            int index = Integer.parseInt(props.getProperty("column." + column.getHeaderValue() + ".index", Integer.toString(i)));
+        // First pass: set visibility
+        for (int i = 0; i < tableModel.getColumnCount(); i++) {
+            String columnName = tableModel.getColumnName(i);
+            boolean isVisible = Boolean.parseBoolean(
+                props.getProperty("column." + columnName + ".visible", "true"));
+            
+            if (!isVisible) {
+                // Find and hide the column
+                try {
+                    TableColumn column = columnModel.getColumn(
+                        columnModel.getColumnIndex(columnName));
+                    column.setMinWidth(0);
+                    column.setMaxWidth(0);
+                    column.setPreferredWidth(0);
+                    
+                    // Update the checkbox state in the control panel
+                    for (Component comp : columnControlPanel.getComponents()) {
+                        if (comp instanceof JCheckBox) {
+                            JCheckBox checkBox = (JCheckBox) comp;
+                            if (checkBox.getText().equals(columnName)) {
+                                checkBox.setSelected(false);
+                                break;
+                            }
+                        }
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Column not found, skip it
+                }
+            }
+        }
 
-            column.setPreferredWidth(width);
-            columnModel.moveColumn(columnModel.getColumnIndex(column.getIdentifier()), index);
+        // Second pass: set widths and positions for visible columns
+        for (int i = 0; i < tableModel.getColumnCount(); i++) {
+            String columnName = tableModel.getColumnName(i);
+            boolean isVisible = Boolean.parseBoolean(
+                props.getProperty("column." + columnName + ".visible", "true"));
+            
+            if (isVisible) {
+                try {
+                    TableColumn column = columnModel.getColumn(
+                        columnModel.getColumnIndex(columnName));
+                    int width = Integer.parseInt(
+                        props.getProperty("column." + columnName + ".width", 
+                        Integer.toString(column.getWidth())));
+                    int index = Integer.parseInt(
+                        props.getProperty("column." + columnName + ".index", 
+                        Integer.toString(i)));
+
+                    column.setPreferredWidth(width);
+                    columnModel.moveColumn(
+                        columnModel.getColumnIndex(column.getIdentifier()), 
+                        index);
+                } catch (IllegalArgumentException e) {
+                    // Column not found, skip it
+                }
+            }
         }
     } catch (IOException e) {
         e.printStackTrace();
