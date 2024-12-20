@@ -183,13 +183,13 @@ private void addStock() {
                 double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                 double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                
+
                 // Handle EPS estimates with proper null checking
-                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
-                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
-                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear4", 0.0), 2) : 0.0;
-                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear5", 0.0), 2) : 0.0;
+                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
+                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("eps3", 0.0), 2) : 0.0;
+                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("eps4", 0.0), 2) : 0.0;
 
                 tableModel.addRow(new Object[]{
                     name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
@@ -232,12 +232,12 @@ private void refreshWatchlist() {
                 double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                 double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                
-                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
-                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
-                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear4", 0.0), 2) : 0.0;
-                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear5", 0.0), 2) : 0.0;
+
+                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
+                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("eps3", 0.0), 2) : 0.0;
+                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("eps4", 0.0), 2) : 0.0;
 
                 tableModel.setValueAt(name, modelRow, 0);
                 tableModel.setValueAt(price, modelRow, 2);
