@@ -20,7 +20,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.util.Calendar;  // Import Calendar class for getting the current year
+import java.util.Calendar;
 
 public class Watchlist {
     private JTable watchlistTable;
@@ -29,109 +29,103 @@ public class Watchlist {
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
     private JPanel columnControlPanel;
 
-   // Method to get dynamic column names for EPS estimates
-private String[] getDynamicColumnNames() {
-    int currentYear = Calendar.getInstance().get(Calendar.YEAR);  // Get the current year
-    String[] columnNames = new String[5];
-    for (int i = 0; i < 5; i++) {
-        columnNames[i] = "EPS " + (currentYear + i);  // Generate column names for current year and the next 4 years
+    private String[] getDynamicColumnNames() {
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        String[] columnNames = new String[5];
+        for (int i = 0; i < 5; i++) {
+            columnNames[i] = "EPS " + (currentYear + i);
+        }
+        return columnNames;
     }
-    return columnNames;
-}
     
-public void createAndShowGUI() {
-    JFrame frame = new JFrame("Watchlist");
-    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    frame.setSize(900, 600);
+    public void createAndShowGUI() {
+        JFrame frame = new JFrame("Watchlist");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setSize(900, 600);
 
-    JPanel mainPanel = new JPanel(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
-    // Initialize table model with columns
-    String[] dynamicColumnNames = getDynamicColumnNames();  // Get dynamic column names
-    tableModel = new DefaultTableModel(new Object[]{
-        "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
-        "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-        dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], dynamicColumnNames[3], dynamicColumnNames[4]
-    }, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return column == 8 || column == 9;
-        }
-
-        @Override
-        public Class<?> getColumnClass(int columnIndex) {
-            switch (columnIndex) {
-                case 2: case 3: case 4: case 5: case 6: case 7: 
-                case 8: case 9: case 10: case 11: case 12: case 13: case 14:
-                    return Double.class;
-                default:
-                    return String.class;
+        String[] dynamicColumnNames = getDynamicColumnNames();
+        tableModel = new DefaultTableModel(new Object[]{
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
+            "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
+            dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
+            dynamicColumnNames[3], dynamicColumnNames[4],
+            "PEG (3Y)"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 8 || column == 9;
             }
-        }
-    };
 
-    watchlistTable = new JTable(tableModel);
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                switch (columnIndex) {
+                    case 2: case 3: case 4: case 5: case 6: case 7: 
+                    case 8: case 9: case 10: case 11: case 12: case 13: 
+                    case 14: case 15:
+                        return Double.class;
+                    default:
+                        return String.class;
+                }
+            }
+        };
 
-    // Set up the table sorter
-    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-    setupTableSorter(sorter);
-    watchlistTable.setRowSorter(sorter);
+        watchlistTable = new JTable(tableModel);
 
-    // Configure table properties
-    watchlistTable.getTableHeader().setReorderingAllowed(true);
-    watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-    watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        setupTableSorter(sorter);
+        watchlistTable.setRowSorter(sorter);
 
-    // Create scroll pane for table
-    JScrollPane scrollPane = new JScrollPane(watchlistTable);
-    mainPanel.add(scrollPane, BorderLayout.CENTER);
+        watchlistTable.getTableHeader().setReorderingAllowed(true);
+        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
 
-    // Setup column control panel
-    setupColumnControlPanel();
-    mainPanel.add(columnControlPanel, BorderLayout.WEST);
+        JScrollPane scrollPane = new JScrollPane(watchlistTable);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-    // Setup button panel
-    JPanel buttonPanel = new JPanel();
-    setupButtonPanel(buttonPanel);
-    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        setupColumnControlPanel();
+        mainPanel.add(columnControlPanel, BorderLayout.WEST);
 
-    frame.add(mainPanel);
-    frame.setLocationRelativeTo(null);
-    frame.setVisible(true);
+        JPanel buttonPanel = new JPanel();
+        setupButtonPanel(buttonPanel);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-    // Load saved settings and watchlist
-    loadColumnSettings();
-    loadWatchlist();
+        frame.add(mainPanel);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
 
-    // Add window listener for saving on close
-    frame.addWindowListener(new java.awt.event.WindowAdapter() {
-        @Override
-        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-            saveColumnSettings();
-            saveWatchlist();
-        }
-    });
-}
+        loadColumnSettings();
+        loadWatchlist();
+
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                saveColumnSettings();
+                saveWatchlist();
+            }
+        });
+    }
 
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
-        for (int i = 2; i <= 12; i++) {
+        for (int i = 2; i <= 15; i++) {
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
         }
     }
 
-   private void setupColumnControlPanel() {
-    columnControlPanel = new JPanel();
-    columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
+    private void setupColumnControlPanel() {
+        columnControlPanel = new JPanel();
+        columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
 
-    TableColumnModel columnModel = watchlistTable.getColumnModel();
-    for (int i = 0; i < columnModel.getColumnCount(); i++) {
-        JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
-        final String columnName = tableModel.getColumnName(i);
-        checkBox.addActionListener(e -> toggleColumnVisibility(columnName, checkBox.isSelected()));
-        columnControlPanel.add(checkBox);
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
+            final String columnName = tableModel.getColumnName(i);
+            checkBox.addActionListener(e -> toggleColumnVisibility(columnName, checkBox.isSelected()));
+            columnControlPanel.add(checkBox);
+        }
     }
-}
 
     private void setupButtonPanel(JPanel buttonPanel) {
         JButton addButton = new JButton("Add Stock");
@@ -147,24 +141,35 @@ public void createAndShowGUI() {
         buttonPanel.add(refreshButton);
     }
     
-private void toggleColumnVisibility(String columnName, boolean visible) {
-    TableColumnModel columnModel = watchlistTable.getColumnModel();
-    for (int i = 0; i < columnModel.getColumnCount(); i++) {
-        TableColumn column = columnModel.getColumn(i);
-        if (column.getHeaderValue().equals(columnName)) {
-            if (visible) {
-                column.setMinWidth(15);
-                column.setMaxWidth(Integer.MAX_VALUE);
-                column.setPreferredWidth(75);
-            } else {
-                column.setMinWidth(0);
-                column.setMaxWidth(0);
-                column.setPreferredWidth(0);
+    private void toggleColumnVisibility(String columnName, boolean visible) {
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            TableColumn column = columnModel.getColumn(i);
+            if (column.getHeaderValue().equals(columnName)) {
+                if (visible) {
+                    column.setMinWidth(15);
+                    column.setMaxWidth(Integer.MAX_VALUE);
+                    column.setPreferredWidth(75);
+                } else {
+                    column.setMinWidth(0);
+                    column.setMaxWidth(0);
+                    column.setPreferredWidth(0);
+                }
+                break;
             }
-            break;
         }
     }
-}
+
+    private double calculatePEG3Year(double epsCurrentYear, double epsYear3) {
+    // Ensure EPS values are valid to avoid division by zero
+    if (epsCurrentYear == 0) return 0;
+
+    // Calculate the PEG ratio using the provided formula
+    double growthRate = (epsYear3 - epsCurrentYear) / epsCurrentYear;
+
+    // Calculate and return the PEG ratio, rounded to 2 decimal places
+    return round(growthRate * 100, 2);
+    }
 
 private void addStock() {
     String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
@@ -184,16 +189,14 @@ private void addStock() {
                 double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
 
-                // Handle EPS estimates with proper null checking
                 double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                 double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("eps3", 0.0), 2) : 0.0;
-                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("eps4", 0.0), 2) : 0.0;
+                
+                double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
                 tableModel.addRow(new Object[]{
                     name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
-                    grahamNumber, 0.0, 0.0, epsCurrentYear, epsNextYear, epsYear3, epsYear4, epsYear5
+                    grahamNumber, 0.0, 0.0, epsCurrentYear, 0.0, epsYear3, 0.0, 0.0, peg3Year
                 });
                 
                 saveWatchlist();
@@ -213,7 +216,7 @@ private void addStock() {
     }
 }
 
-private void refreshWatchlist() {
+    private void refreshWatchlist() {
     int rowCount = tableModel.getRowCount();
     for (int i = 0; i < rowCount; i++) {
         int modelRow = watchlistTable.convertRowIndexToModel(i);
@@ -234,10 +237,9 @@ private void refreshWatchlist() {
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
 
                 double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                 double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("eps3", 0.0), 2) : 0.0;
-                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("eps4", 0.0), 2) : 0.0;
+                
+                double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
                 tableModel.setValueAt(name, modelRow, 0);
                 tableModel.setValueAt(price, modelRow, 2);
@@ -247,10 +249,8 @@ private void refreshWatchlist() {
                 tableModel.setValueAt(payoutRatio, modelRow, 6);
                 tableModel.setValueAt(grahamNumber, modelRow, 7);
                 tableModel.setValueAt(epsCurrentYear, modelRow, 10);
-                tableModel.setValueAt(epsNextYear, modelRow, 11);
                 tableModel.setValueAt(epsYear3, modelRow, 12);
-                tableModel.setValueAt(epsYear4, modelRow, 13);
-                tableModel.setValueAt(epsYear5, modelRow, 14);
+                tableModel.setValueAt(peg3Year, modelRow, 15);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -267,21 +267,8 @@ private void refreshWatchlist() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
             int modelRow = watchlistTable.convertRowIndexToModel(selectedRow);
-            String stockName = (String) tableModel.getValueAt(modelRow, 0);
-            int response = JOptionPane.showConfirmDialog(null, 
-                "Are you sure you want to delete " + stockName + "?", 
-                "Confirm Deletion", 
-                JOptionPane.YES_NO_OPTION);
-            
-            if (response == JOptionPane.YES_OPTION) {
-                tableModel.removeRow(modelRow);
-                saveWatchlist();
-            }
-        } else {
-            JOptionPane.showMessageDialog(null, 
-                "No stock selected. Please select a stock to delete.", 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
+            tableModel.removeRow(modelRow);
+            saveWatchlist();
         }
     }
 
@@ -348,110 +335,56 @@ private void refreshWatchlist() {
         }
         return null;
     }
-    
-private void saveColumnSettings() {
-    Properties props = new Properties();
-    TableColumnModel columnModel = watchlistTable.getColumnModel();
 
-    // Save visibility state by checking column width
-    for (int i = 0; i < tableModel.getColumnCount(); i++) {
-        String columnName = tableModel.getColumnName(i);
-        // A column is considered hidden if its width is 0
-        boolean isVisible = true;
-        try {
-            TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
-            isVisible = column.getWidth() > 0;
-        } catch (IllegalArgumentException e) {
-            // Column is not in the model, so it's hidden
-            isVisible = false;
+    private void saveColumnSettings() {
+        Properties properties = new Properties();
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
+        
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            TableColumn column = columnModel.getColumn(i);
+            String columnName = column.getHeaderValue().toString();
+            boolean isVisible = column.getMaxWidth() != 0;
+            properties.setProperty(columnName, String.valueOf(isVisible));
         }
-        
-        // Save visibility state
-        props.setProperty("column." + columnName + ".visible", Boolean.toString(isVisible));
-        
-        // If column is visible, save its width and index
-        if (isVisible) {
-            TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
-            props.setProperty("column." + columnName + ".width", Integer.toString(column.getWidth()));
-            props.setProperty("column." + columnName + ".index", Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
+
+        try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
+            properties.store(out, "Column Visibility Settings");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
-        props.store(out, "Column settings");
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-}
-
-private void loadColumnSettings() {
-    Properties props = new Properties();
-    TableColumnModel columnModel = watchlistTable.getColumnModel();
-
-    try (FileInputStream in = new FileInputStream(COLUMN_SETTINGS_FILE)) {
-        props.load(in);
-
-        // First pass: set visibility
-        for (int i = 0; i < tableModel.getColumnCount(); i++) {
-            String columnName = tableModel.getColumnName(i);
-            boolean isVisible = Boolean.parseBoolean(
-                props.getProperty("column." + columnName + ".visible", "true"));
-            
-            if (!isVisible) {
-                // Find and hide the column
-                try {
-                    TableColumn column = columnModel.getColumn(
-                        columnModel.getColumnIndex(columnName));
-                    column.setMinWidth(0);
-                    column.setMaxWidth(0);
-                    column.setPreferredWidth(0);
-                    
-                    // Update the checkbox state in the control panel
-                    for (Component comp : columnControlPanel.getComponents()) {
-                        if (comp instanceof JCheckBox) {
-                            JCheckBox checkBox = (JCheckBox) comp;
-                            if (checkBox.getText().equals(columnName)) {
-                                checkBox.setSelected(false);
-                                break;
+    private void loadColumnSettings() {
+        Properties properties = new Properties();
+        File settingsFile = new File(COLUMN_SETTINGS_FILE);
+        
+        if (settingsFile.exists()) {
+            try (FileInputStream in = new FileInputStream(settingsFile)) {
+                properties.load(in);
+                
+                for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                    String columnName = tableModel.getColumnName(i);
+                    String visibilityStr = properties.getProperty(columnName);
+                    if (visibilityStr != null) {
+                        boolean isVisible = Boolean.parseBoolean(visibilityStr);
+                        toggleColumnVisibility(columnName, isVisible);
+                        
+                        for (Component comp : columnControlPanel.getComponents()) {
+                            if (comp instanceof JCheckBox) {
+                                JCheckBox checkBox = (JCheckBox) comp;
+                                if (checkBox.getText().equals(columnName)) {
+                                    checkBox.setSelected(isVisible);
+                                    break;
+                                }
                             }
                         }
                     }
-                } catch (IllegalArgumentException e) {
-                    // Column not found, skip it
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
-
-        // Second pass: set widths and positions for visible columns
-        for (int i = 0; i < tableModel.getColumnCount(); i++) {
-            String columnName = tableModel.getColumnName(i);
-            boolean isVisible = Boolean.parseBoolean(
-                props.getProperty("column." + columnName + ".visible", "true"));
-            
-            if (isVisible) {
-                try {
-                    TableColumn column = columnModel.getColumn(
-                        columnModel.getColumnIndex(columnName));
-                    int width = Integer.parseInt(
-                        props.getProperty("column." + columnName + ".width", 
-                        Integer.toString(column.getWidth())));
-                    int index = Integer.parseInt(
-                        props.getProperty("column." + columnName + ".index", 
-                        Integer.toString(i)));
-
-                    column.setPreferredWidth(width);
-                    columnModel.moveColumn(
-                        columnModel.getColumnIndex(column.getIdentifier()), 
-                        index);
-                } catch (IllegalArgumentException e) {
-                    // Column not found, skip it
-                }
-            }
-        }
-    } catch (IOException e) {
-        e.printStackTrace();
     }
-}
 
     private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
@@ -465,11 +398,14 @@ private void loadColumnSettings() {
             jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
             jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
             jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
-            jsonObject.put("avgPbRatio", tableModel.getValueAt(i, 8));
-            jsonObject.put("avgPeRatio", tableModel.getValueAt(i, 9));
-            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 10));
-            jsonObject.put("epsYear2", tableModel.getValueAt(i, 11));
+            jsonObject.put("pbAvg", tableModel.getValueAt(i, 8));
+            jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
+            jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 10));
+            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 11));
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 12));
+            jsonObject.put("epsYear4", tableModel.getValueAt(i, 13));
+            jsonObject.put("epsYear5", tableModel.getValueAt(i, 14));
+            jsonObject.put("peg3Year", tableModel.getValueAt(i, 15));
             jsonArray.put(jsonObject);
         }
 
@@ -482,67 +418,65 @@ private void loadColumnSettings() {
     }
 
     private void loadWatchlist() {
-        File file = new File("watchlist.json");
-        if (file.exists()) {
-            try (FileReader reader = new FileReader(file)) {
-                Scanner scanner = new Scanner(reader);
-                String json = scanner.useDelimiter("\\Z").next();
-                scanner.close();
+    File file = new File("watchlist.json");
+    if (file.exists()) {
+        try (FileReader reader = new FileReader(file)) {
+            Scanner scanner = new Scanner(reader);
+            String json = scanner.useDelimiter("\\Z").next();
+            scanner.close();
 
-                JSONArray jsonArray = new JSONArray(json);
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    tableModel.addRow(new Object[]{
-                        jsonObject.optString("name", ""),
-                        jsonObject.optString("ticker", ""),
-                        jsonObject.optDouble("price", 0.0),
-                        jsonObject.optDouble("peTtm", 0.0),
-                        jsonObject.optDouble("pbTtm", 0.0),
-                        jsonObject.optDouble("dividendYield", 0.0),
-                        jsonObject.optDouble("payoutRatio", 0.0),
-                        jsonObject.optDouble("grahamNumber", 0.0),
-                        jsonObject.optDouble("avgPbRatio", 0.0),
-                        jsonObject.optDouble("avgPeRatio", 0.0),
-                        jsonObject.optDouble("epsNextYear", 0.0),
-                        jsonObject.optDouble("epsYear2", 0.0),
-                        jsonObject.optDouble("epsYear3", 0.0)
-                    });
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            JSONArray jsonArray = new JSONArray(json);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                tableModel.addRow(new Object[]{
+                    jsonObject.optString("name", ""),
+                    jsonObject.optString("ticker", ""),
+                    jsonObject.optDouble("price", 0.0),
+                    jsonObject.optDouble("peTtm", 0.0),
+                    jsonObject.optDouble("pbTtm", 0.0),
+                    jsonObject.optDouble("dividendYield", 0.0),
+                    jsonObject.optDouble("payoutRatio", 0.0),
+                    jsonObject.optDouble("grahamNumber", 0.0),
+                    jsonObject.optDouble("pbAvg", 0.0),
+                    jsonObject.optDouble("peAvg", 0.0),
+                    jsonObject.optDouble("epsCurrentYear", 0.0),
+                    jsonObject.optDouble("epsNextYear", 0.0),
+                    jsonObject.optDouble("epsYear3", 0.0),
+                    jsonObject.optDouble("epsYear4", 0.0),
+                    jsonObject.optDouble("epsYear5", 0.0),
+                    jsonObject.optDouble("peg3Year", 0.0)
+                });
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
+}
 
-    private double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
+private double round(double value, int places) {
+    if (places < 0) throw new IllegalArgumentException();
 
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
-    }
+    BigDecimal bd = BigDecimal.valueOf(value);
+    bd = bd.setScale(places, RoundingMode.HALF_UP);
+    return bd.doubleValue();
+}
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new Watchlist().createAndShowGUI();
-            }
-        });
-    }
+public static void main(String[] args) {
+    SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
+}
 
-    static class CustomCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            Component cell = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
-            if (value instanceof Double && (Double) value == 0.0) {
-                cell.setBackground(Color.YELLOW);
-            } else {
-                cell.setBackground(Color.WHITE);
-            }
-            return cell;
+static class CustomCellRenderer extends DefaultTableCellRenderer {
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value,
+            boolean isSelected, boolean hasFocus, int row, int column) {
+        Component cell = super.getTableCellRendererComponent(
+            table, value, isSelected, hasFocus, row, column);
+        if (value instanceof Double && (Double) value == 0.0) {
+            cell.setBackground(Color.YELLOW);
+        } else {
+            cell.setBackground(Color.WHITE);
         }
+        return cell;
     }
+}
 }
