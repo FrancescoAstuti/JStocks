@@ -165,10 +165,10 @@ public class Watchlist {
     if (epsCurrentYear == 0) return 0;
 
     // Calculate the PEG ratio using the provided formula
-    double growthRate = (epsYear3 - epsCurrentYear) / epsCurrentYear;
+    double growthRate = 100*(epsYear3 - epsCurrentYear) / epsCurrentYear;
 
     // Calculate and return the PEG ratio, rounded to 2 decimal places
-    return round(growthRate * 100, 2);
+    return round(growthRate, 2);
     }
 
 private void addStock() {
