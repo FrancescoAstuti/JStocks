@@ -107,19 +107,18 @@ public class Watchlist {
         }
     }
 
-    private void setupColumnControlPanel() {
-        columnControlPanel = new JPanel();
-        columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
+   private void setupColumnControlPanel() {
+    columnControlPanel = new JPanel();
+    columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
 
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
-        for (int i = 0; i < columnModel.getColumnCount(); i++) {
-            JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
-            final int columnIndex = i;
-            checkBox.addActionListener(e -> 
-                toggleColumnVisibility(columnIndex, checkBox.isSelected()));
-            columnControlPanel.add(checkBox);
-        }
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
+        final String columnName = tableModel.getColumnName(i);
+        checkBox.addActionListener(e -> toggleColumnVisibility(columnName, checkBox.isSelected()));
+        columnControlPanel.add(checkBox);
     }
+}
 
     private void setupButtonPanel(JPanel buttonPanel) {
         JButton addButton = new JButton("Add Stock");
@@ -135,20 +134,24 @@ public class Watchlist {
         buttonPanel.add(refreshButton);
     }
     
-private void toggleColumnVisibility(int columnIndex, boolean visible) {
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
-        TableColumn column = columnModel.getColumn(columnIndex);
-        if (visible) {
-            column.setMinWidth(15);
-            column.setMaxWidth(Integer.MAX_VALUE);
-            column.setPreferredWidth(75);
-        } else {
-            column.setMinWidth(0);
-            column.setMaxWidth(0);
-            column.setPreferredWidth(0);
+private void toggleColumnVisibility(String columnName, boolean visible) {
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        TableColumn column = columnModel.getColumn(i);
+        if (column.getHeaderValue().equals(columnName)) {
+            if (visible) {
+                column.setMinWidth(15);
+                column.setMaxWidth(Integer.MAX_VALUE);
+                column.setPreferredWidth(75);
+            } else {
+                column.setMinWidth(0);
+                column.setMaxWidth(0);
+                column.setPreferredWidth(0);
+            }
+            break;
         }
     }
-
+}
     private void addStock() {
         String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
         if (ticker != null && !ticker.trim().isEmpty()) {
@@ -376,50 +379,41 @@ private void toggleColumnVisibility(int columnIndex, boolean visible) {
     }
     
 private void saveColumnSettings() {
-        Properties props = new Properties();
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
+    Properties props = new Properties();
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
+
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        TableColumn column = columnModel.getColumn(i);
+        props.setProperty("column." + column.getHeaderValue() + ".width", Integer.toString(column.getWidth()));
+        props.setProperty("column." + column.getHeaderValue() + ".index", Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
+    }
+
+    try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
+        props.store(out, "Column settings");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+private void loadColumnSettings() {
+    Properties props = new Properties();
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
+
+    try (FileInputStream in = new FileInputStream(COLUMN_SETTINGS_FILE)) {
+        props.load(in);
 
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
             TableColumn column = columnModel.getColumn(i);
-            props.setProperty("column" + column.getModelIndex() + ".width", 
-                Integer.toString(column.getWidth()));
-            props.setProperty("column" + column.getModelIndex() + ".index", 
-                Integer.toString(columnModel.getColumnIndex(column.getIdentifier())));
-        }
+            int width = Integer.parseInt(props.getProperty("column." + column.getHeaderValue() + ".width", Integer.toString(column.getWidth())));
+            int index = Integer.parseInt(props.getProperty("column." + column.getHeaderValue() + ".index", Integer.toString(i)));
 
-        try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
-            props.store(out, "Column settings");
-        } catch (IOException e) {
-            e.printStackTrace();
+            column.setPreferredWidth(width);
+            columnModel.moveColumn(columnModel.getColumnIndex(column.getIdentifier()), index);
         }
+    } catch (IOException e) {
+        e.printStackTrace();
     }
-
-    private void loadColumnSettings() {
-        Properties props = new Properties();
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
-
-        try (FileInputStream in = new FileInputStream(COLUMN_SETTINGS_FILE)) {
-            props.load(in);
-
-            for (int i = 0; i < columnModel.getColumnCount(); i++) {
-                TableColumn column = columnModel.getColumn(i);
-                int width = Integer.parseInt(props.getProperty(
-                    "column" + column.getModelIndex() + ".width", 
-                    Integer.toString(column.getWidth())));
-                int index = Integer.parseInt(props.getProperty(
-                    "column" + column.getModelIndex() + ".index", 
-                    Integer.toString(i)));
-
-                column.setPreferredWidth(width);
-                columnModel.moveColumn(
-                    columnModel.getColumnIndex(column.getIdentifier()), 
-                    index);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+}
     private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
