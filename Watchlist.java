@@ -20,6 +20,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.Calendar;  // Import Calendar class for getting the current year
 
 public class Watchlist {
     private JTable watchlistTable;
@@ -28,78 +29,89 @@ public class Watchlist {
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
     private JPanel columnControlPanel;
 
-    public void createAndShowGUI() {
-        JFrame frame = new JFrame("Watchlist");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(900, 600);
-
-        JPanel mainPanel = new JPanel(new BorderLayout());
-
-        // Initialize table model with columns
-        tableModel = new DefaultTableModel(new Object[]{
-            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
-            "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-            "EPS Next Year", "EPS Year 2", "EPS Year 3"
-        }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 8 || column == 9;
-            }
-
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                switch (columnIndex) {
-                    case 2: case 3: case 4: case 5: case 6: case 7: 
-                    case 8: case 9: case 10: case 11: case 12:
-                        return Double.class;
-                    default:
-                        return String.class;
-                }
-            }
-        };
-
-        watchlistTable = new JTable(tableModel);
-
-        // Set up the table sorter
-        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-        setupTableSorter(sorter);
-        watchlistTable.setRowSorter(sorter);
-
-        // Configure table properties
-        watchlistTable.getTableHeader().setReorderingAllowed(true);
-        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
-
-        // Create scroll pane for table
-        JScrollPane scrollPane = new JScrollPane(watchlistTable);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-
-        // Setup column control panel
-        setupColumnControlPanel();
-        mainPanel.add(columnControlPanel, BorderLayout.WEST);
-
-        // Setup button panel
-        JPanel buttonPanel = new JPanel();
-        setupButtonPanel(buttonPanel);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        frame.add(mainPanel);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-
-        // Load saved settings and watchlist
-        loadColumnSettings();
-        loadWatchlist();
-
-        // Add window listener for saving on close
-        frame.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                saveColumnSettings();
-                saveWatchlist();
-            }
-        });
+   // Method to get dynamic column names for EPS estimates
+private String[] getDynamicColumnNames() {
+    int currentYear = Calendar.getInstance().get(Calendar.YEAR);  // Get the current year
+    String[] columnNames = new String[5];
+    for (int i = 0; i < 5; i++) {
+        columnNames[i] = "EPS " + (currentYear + i);  // Generate column names for current year and the next 4 years
     }
+    return columnNames;
+}
+    
+public void createAndShowGUI() {
+    JFrame frame = new JFrame("Watchlist");
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    frame.setSize(900, 600);
+
+    JPanel mainPanel = new JPanel(new BorderLayout());
+
+    // Initialize table model with columns
+    String[] dynamicColumnNames = getDynamicColumnNames();  // Get dynamic column names
+    tableModel = new DefaultTableModel(new Object[]{
+        "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
+        "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
+        dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], dynamicColumnNames[3], dynamicColumnNames[4]
+    }, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return column == 8 || column == 9;
+        }
+
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            switch (columnIndex) {
+                case 2: case 3: case 4: case 5: case 6: case 7: 
+                case 8: case 9: case 10: case 11: case 12: case 13: case 14:
+                    return Double.class;
+                default:
+                    return String.class;
+            }
+        }
+    };
+
+    watchlistTable = new JTable(tableModel);
+
+    // Set up the table sorter
+    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+    setupTableSorter(sorter);
+    watchlistTable.setRowSorter(sorter);
+
+    // Configure table properties
+    watchlistTable.getTableHeader().setReorderingAllowed(true);
+    watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+    watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+
+    // Create scroll pane for table
+    JScrollPane scrollPane = new JScrollPane(watchlistTable);
+    mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+    // Setup column control panel
+    setupColumnControlPanel();
+    mainPanel.add(columnControlPanel, BorderLayout.WEST);
+
+    // Setup button panel
+    JPanel buttonPanel = new JPanel();
+    setupButtonPanel(buttonPanel);
+    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+    frame.add(mainPanel);
+    frame.setLocationRelativeTo(null);
+    frame.setVisible(true);
+
+    // Load saved settings and watchlist
+    loadColumnSettings();
+    loadWatchlist();
+
+    // Add window listener for saving on close
+    frame.addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+            saveColumnSettings();
+            saveWatchlist();
+        }
+    });
+}
 
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
         for (int i = 2; i <= 12; i++) {
@@ -153,12 +165,13 @@ private void toggleColumnVisibility(String columnName, boolean visible) {
         }
     }
 }
+
 private void addStock() {
     String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
     if (ticker != null && !ticker.trim().isEmpty()) {
         try {
             JSONObject stockData = fetchStockData(ticker);
-            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);  // Updated line
+            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
             
             if (stockData != null) {
                 String name = stockData.getString("name");
@@ -171,12 +184,16 @@ private void addStock() {
                 double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
                 
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
+                // Handle EPS estimates with proper null checking
+                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
                 double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
+                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear4", 0.0), 2) : 0.0;
+                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear5", 0.0), 2) : 0.0;
 
                 tableModel.addRow(new Object[]{
-                    name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, 0.0, 0.0, epsNextYear, epsYear2, epsYear3
+                    name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
+                    grahamNumber, 0.0, 0.0, epsCurrentYear, epsNextYear, epsYear3, epsYear4, epsYear5
                 });
                 
                 saveWatchlist();
@@ -203,7 +220,7 @@ private void refreshWatchlist() {
         String ticker = (String) tableModel.getValueAt(modelRow, 1);
         try {
             JSONObject stockData = fetchStockData(ticker);
-            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);  // Updated line
+            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
             
             if (stockData != null) {
                 String name = stockData.getString("name");
@@ -215,9 +232,12 @@ private void refreshWatchlist() {
                 double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                 double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                 double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
-                double epsYear2 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
+                
+                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("epsNextYear", 0.0), 2) : 0.0;
+                double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("epsYear2", 0.0), 2) : 0.0;
                 double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear3", 0.0), 2) : 0.0;
+                double epsYear4 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear4", 0.0), 2) : 0.0;
+                double epsYear5 = epsEstimates != null ? round(epsEstimates.optDouble("epsYear5", 0.0), 2) : 0.0;
 
                 tableModel.setValueAt(name, modelRow, 0);
                 tableModel.setValueAt(price, modelRow, 2);
@@ -226,9 +246,11 @@ private void refreshWatchlist() {
                 tableModel.setValueAt(dividendYield, modelRow, 5);
                 tableModel.setValueAt(payoutRatio, modelRow, 6);
                 tableModel.setValueAt(grahamNumber, modelRow, 7);
-                tableModel.setValueAt(epsNextYear, modelRow, 10);
-                tableModel.setValueAt(epsYear2, modelRow, 11);
+                tableModel.setValueAt(epsCurrentYear, modelRow, 10);
+                tableModel.setValueAt(epsNextYear, modelRow, 11);
                 tableModel.setValueAt(epsYear3, modelRow, 12);
+                tableModel.setValueAt(epsYear4, modelRow, 13);
+                tableModel.setValueAt(epsYear5, modelRow, 14);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -240,6 +262,7 @@ private void refreshWatchlist() {
     }
     saveWatchlist();
 }
+
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
@@ -261,7 +284,6 @@ private void refreshWatchlist() {
                 JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     private JSONObject fetchStockData(String ticker) {
         String urlString = String.format("https://financialmodelingprep.com/api/v3/quote/%s?apikey=%s", ticker, API_KEY);
@@ -326,7 +348,6 @@ private void refreshWatchlist() {
         }
         return null;
     }
-
     
 private void saveColumnSettings() {
     Properties props = new Properties();
@@ -364,6 +385,7 @@ private void loadColumnSettings() {
         e.printStackTrace();
     }
 }
+
     private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
