@@ -174,6 +174,7 @@ public class Watchlist {
 private void addStock() {
     String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
     if (ticker != null && !ticker.trim().isEmpty()) {
+        ticker = ticker.toUpperCase(); // Convert ticker to uppercase
         try {
             JSONObject stockData = fetchStockData(ticker);
             JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
@@ -417,7 +418,7 @@ private void addStock() {
         }
     }
 
-    private void loadWatchlist() {
+private void loadWatchlist() {
     File file = new File("watchlist.json");
     if (file.exists()) {
         try (FileReader reader = new FileReader(file)) {
@@ -430,7 +431,7 @@ private void addStock() {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 tableModel.addRow(new Object[]{
                     jsonObject.optString("name", ""),
-                    jsonObject.optString("ticker", ""),
+                    jsonObject.optString("ticker", "").toUpperCase(), // Convert ticker to uppercase
                     jsonObject.optDouble("price", 0.0),
                     jsonObject.optDouble("peTtm", 0.0),
                     jsonObject.optDouble("pbTtm", 0.0),
