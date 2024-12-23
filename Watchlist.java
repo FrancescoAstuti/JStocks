@@ -161,108 +161,108 @@ public class Watchlist {
     }
 
     private double calculatePEG3Year(double epsCurrentYear, double epsYear3) {
-    // Ensure EPS values are valid to avoid division by zero
-    if (epsCurrentYear == 0) return 0;
+        // Ensure EPS values are valid to avoid division by zero
+        if (epsCurrentYear == 0) return 0;
 
-    // Calculate the PEG ratio using the provided formula
-    double growthRate = 100*(epsYear3 - epsCurrentYear) / epsCurrentYear;
+        // Calculate the PEG ratio using the provided formula
+        double growthRate = 100 * (epsYear3 - epsCurrentYear) / epsCurrentYear;
 
-    // Calculate and return the PEG ratio, rounded to 2 decimal places
-    return round(growthRate, 2);
+        // Calculate and return the PEG ratio, rounded to 2 decimal places
+        return round(growthRate, 2);
     }
 
-private void addStock() {
-    String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
-    if (ticker != null && !ticker.trim().isEmpty()) {
-        ticker = ticker.toUpperCase(); // Convert ticker to uppercase
-        try {
-            JSONObject stockData = fetchStockData(ticker);
-            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
-            
-            if (stockData != null) {
-                String name = stockData.getString("name");
-                double price = round(stockData.getDouble("price"), 2);
-                JSONObject ratios = fetchStockRatios(ticker);
+    private void addStock() {
+        String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
+        if (ticker != null && !ticker.trim().isEmpty()) {
+            ticker = ticker.toUpperCase(); // Convert ticker to uppercase
+            try {
+                JSONObject stockData = fetchStockData(ticker);
+                JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
                 
-                double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                if (stockData != null) {
+                    String name = stockData.getString("name");
+                    double price = round(stockData.getDouble("price"), 2);
+                    JSONObject ratios = fetchStockRatios(ticker);
+                    
+                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
 
-                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                
-                double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                    double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                    
+                    double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
-                tableModel.addRow(new Object[]{
-                    name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
-                    grahamNumber, 0.0, 0.0, epsCurrentYear, 0.0, epsYear3, 0.0, 0.0, peg3Year
-                });
-                
-                saveWatchlist();
-            } else {
+                    tableModel.addRow(new Object[]{
+                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
+                        grahamNumber, 0.0, 0.0, epsCurrentYear, 0.0, epsYear3, 0.0, 0.0, peg3Year
+                    });
+                    
+                    saveWatchlist();
+                } else {
+                    JOptionPane.showMessageDialog(null, 
+                        "Failed to fetch stock data for " + ticker, 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
                 JOptionPane.showMessageDialog(null, 
-                    "Failed to fetch stock data for " + ticker, 
+                    "Error fetching stock data: " + e.getMessage(), 
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, 
-                "Error fetching stock data: " + e.getMessage(), 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
         }
     }
-}
-
-    private void refreshWatchlist() {
-    int rowCount = tableModel.getRowCount();
-    for (int i = 0; i < rowCount; i++) {
-        int modelRow = watchlistTable.convertRowIndexToModel(i);
-        String ticker = (String) tableModel.getValueAt(modelRow, 1);
-        try {
-            JSONObject stockData = fetchStockData(ticker);
-            JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
-            
-            if (stockData != null) {
-                String name = stockData.getString("name");
-                double price = round(stockData.getDouble("price"), 2);
-                JSONObject ratios = fetchStockRatios(ticker);
+    
+private void refreshWatchlist() {
+        int rowCount = tableModel.getRowCount();
+        for (int i = 0; i < rowCount; i++) {
+            int modelRow = watchlistTable.convertRowIndexToModel(i);
+            String ticker = (String) tableModel.getValueAt(modelRow, 1);
+            try {
+                JSONObject stockData = fetchStockData(ticker);
+                JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
                 
-                double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                if (stockData != null) {
+                    String name = stockData.getString("name");
+                    double price = round(stockData.getDouble("price"), 2);
+                    JSONObject ratios = fetchStockRatios(ticker);
+                    
+                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
 
-                double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                
-                double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                    double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                    
+                    double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
-                tableModel.setValueAt(name, modelRow, 0);
-                tableModel.setValueAt(price, modelRow, 2);
-                tableModel.setValueAt(peTtm, modelRow, 3);
-                tableModel.setValueAt(pbTtm, modelRow, 4);
-                tableModel.setValueAt(dividendYield, modelRow, 5);
-                tableModel.setValueAt(payoutRatio, modelRow, 6);
-                tableModel.setValueAt(grahamNumber, modelRow, 7);
-                tableModel.setValueAt(epsCurrentYear, modelRow, 10);
-                tableModel.setValueAt(epsYear3, modelRow, 12);
-                tableModel.setValueAt(peg3Year, modelRow, 15);
+                    tableModel.setValueAt(name, modelRow, 0);
+                    tableModel.setValueAt(price, modelRow, 2);
+                    tableModel.setValueAt(peTtm, modelRow, 3);
+                    tableModel.setValueAt(pbTtm, modelRow, 4);
+                    tableModel.setValueAt(dividendYield, modelRow, 5);
+                    tableModel.setValueAt(payoutRatio, modelRow, 6);
+                    tableModel.setValueAt(grahamNumber, modelRow, 7);
+                    tableModel.setValueAt(epsCurrentYear, modelRow, 10);
+                    tableModel.setValueAt(epsYear3, modelRow, 12);
+                    tableModel.setValueAt(peg3Year, modelRow, 15);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, 
+                    "Error refreshing data for " + ticker + ": " + e.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, 
-                "Error refreshing data for " + ticker + ": " + e.getMessage(), 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
         }
+        saveWatchlist();
     }
-    saveWatchlist();
-}
 
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
@@ -337,57 +337,63 @@ private void addStock() {
         return null;
     }
 
-    private void saveColumnSettings() {
-        Properties properties = new Properties();
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
-        
-        for (int i = 0; i < columnModel.getColumnCount(); i++) {
-            TableColumn column = columnModel.getColumn(i);
-            String columnName = column.getHeaderValue().toString();
-            boolean isVisible = column.getMaxWidth() != 0;
-            properties.setProperty(columnName, String.valueOf(isVisible));
-        }
+private void saveColumnSettings() {
+    Properties properties = new Properties();
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
 
-        try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
-            properties.store(out, "Column Visibility Settings");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    // Save the column order and visibility
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        TableColumn column = columnModel.getColumn(i);
+        String columnName = column.getHeaderValue().toString();
+        properties.setProperty("column" + i + ".name", columnName);
+        properties.setProperty("column" + i + ".index", String.valueOf(columnModel.getColumnIndex(columnName)));
+        properties.setProperty("column" + i + ".visible", String.valueOf(column.getMaxWidth() != 0));
     }
 
-    private void loadColumnSettings() {
-        Properties properties = new Properties();
-        File settingsFile = new File(COLUMN_SETTINGS_FILE);
-        
-        if (settingsFile.exists()) {
-            try (FileInputStream in = new FileInputStream(settingsFile)) {
-                properties.load(in);
-                
-                for (int i = 0; i < tableModel.getColumnCount(); i++) {
-                    String columnName = tableModel.getColumnName(i);
-                    String visibilityStr = properties.getProperty(columnName);
-                    if (visibilityStr != null) {
-                        boolean isVisible = Boolean.parseBoolean(visibilityStr);
-                        toggleColumnVisibility(columnName, isVisible);
-                        
-                        for (Component comp : columnControlPanel.getComponents()) {
-                            if (comp instanceof JCheckBox) {
-                                JCheckBox checkBox = (JCheckBox) comp;
-                                if (checkBox.getText().equals(columnName)) {
-                                    checkBox.setSelected(isVisible);
-                                    break;
-                                }
+    try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
+        properties.store(out, "Column Order and Visibility Settings");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+private void loadColumnSettings() {
+    Properties properties = new Properties();
+    File settingsFile = new File(COLUMN_SETTINGS_FILE);
+
+    if (settingsFile.exists()) {
+        try (FileInputStream in = new FileInputStream(settingsFile)) {
+            properties.load(in);
+
+            TableColumnModel columnModel = watchlistTable.getColumnModel();
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                String columnName = properties.getProperty("column" + i + ".name");
+                if (columnName != null) {
+                    int columnIndex = Integer.parseInt(properties.getProperty("column" + i + ".index"));
+                    boolean isVisible = Boolean.parseBoolean(properties.getProperty("column" + i + ".visible"));
+
+                    TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
+                    columnModel.moveColumn(columnModel.getColumnIndex(columnName), columnIndex);
+                    toggleColumnVisibility(columnName, isVisible);
+
+                    for (Component comp : columnControlPanel.getComponents()) {
+                        if (comp instanceof JCheckBox) {
+                            JCheckBox checkBox = (JCheckBox) comp;
+                            if (checkBox.getText().equals(columnName)) {
+                                checkBox.setSelected(isVisible);
+                                break;
                             }
                         }
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
-
-    private void saveWatchlist() {
+}
+    
+private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             JSONObject jsonObject = new JSONObject();
@@ -418,66 +424,66 @@ private void addStock() {
         }
     }
 
-private void loadWatchlist() {
-    File file = new File("watchlist.json");
-    if (file.exists()) {
-        try (FileReader reader = new FileReader(file)) {
-            Scanner scanner = new Scanner(reader);
-            String json = scanner.useDelimiter("\\Z").next();
-            scanner.close();
+    private void loadWatchlist() {
+        File file = new File("watchlist.json");
+        if (file.exists()) {
+            try (FileReader reader = new FileReader(file)) {
+                Scanner scanner = new Scanner(reader);
+                String json = scanner.useDelimiter("\\Z").next();
+                scanner.close();
 
-            JSONArray jsonArray = new JSONArray(json);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                tableModel.addRow(new Object[]{
-                    jsonObject.optString("name", ""),
-                    jsonObject.optString("ticker", "").toUpperCase(), // Convert ticker to uppercase
-                    jsonObject.optDouble("price", 0.0),
-                    jsonObject.optDouble("peTtm", 0.0),
-                    jsonObject.optDouble("pbTtm", 0.0),
-                    jsonObject.optDouble("dividendYield", 0.0),
-                    jsonObject.optDouble("payoutRatio", 0.0),
-                    jsonObject.optDouble("grahamNumber", 0.0),
-                    jsonObject.optDouble("pbAvg", 0.0),
-                    jsonObject.optDouble("peAvg", 0.0),
-                    jsonObject.optDouble("epsCurrentYear", 0.0),
-                    jsonObject.optDouble("epsNextYear", 0.0),
-                    jsonObject.optDouble("epsYear3", 0.0),
-                    jsonObject.optDouble("epsYear4", 0.0),
-                    jsonObject.optDouble("epsYear5", 0.0),
-                    jsonObject.optDouble("peg3Year", 0.0)
-                });
+                JSONArray jsonArray = new JSONArray(json);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    tableModel.addRow(new Object[]{
+                        jsonObject.optString("name", ""),
+                        jsonObject.optString("ticker", "").toUpperCase(), // Convert ticker to uppercase
+                        jsonObject.optDouble("price", 0.0),
+                        jsonObject.optDouble("peTtm", 0.0),
+                        jsonObject.optDouble("pbTtm", 0.0),
+                        jsonObject.optDouble("dividendYield", 0.0),
+                        jsonObject.optDouble("payoutRatio", 0.0),
+                        jsonObject.optDouble("grahamNumber", 0.0),
+                        jsonObject.optDouble("pbAvg", 0.0),
+                        jsonObject.optDouble("peAvg", 0.0),
+                        jsonObject.optDouble("epsCurrentYear", 0.0),
+                        jsonObject.optDouble("epsNextYear", 0.0),
+                        jsonObject.optDouble("epsYear3", 0.0),
+                        jsonObject.optDouble("epsYear4", 0.0),
+                        jsonObject.optDouble("epsYear5", 0.0),
+                        jsonObject.optDouble("peg3Year", 0.0)
+                    });
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
-}
 
-private double round(double value, int places) {
-    if (places < 0) throw new IllegalArgumentException();
+    private double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
 
-    BigDecimal bd = BigDecimal.valueOf(value);
-    bd = bd.setScale(places, RoundingMode.HALF_UP);
-    return bd.doubleValue();
-}
-
-public static void main(String[] args) {
-    SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
-}
-
-static class CustomCellRenderer extends DefaultTableCellRenderer {
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value,
-            boolean isSelected, boolean hasFocus, int row, int column) {
-        Component cell = super.getTableCellRendererComponent(
-            table, value, isSelected, hasFocus, row, column);
-        if (value instanceof Double && (Double) value == 0.0) {
-            cell.setBackground(Color.YELLOW);
-        } else {
-            cell.setBackground(Color.WHITE);
-        }
-        return cell;
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
-}
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
+    }
+
+    static class CustomCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            Component cell = super.getTableCellRendererComponent(
+                table, value, isSelected, hasFocus, row, column);
+            if (value instanceof Double && (Double) value == 0.0) {
+                cell.setBackground(Color.YELLOW);
+            } else {
+                cell.setBackground(Color.WHITE);
+            }
+            return cell;
+        }
+    }
 }
