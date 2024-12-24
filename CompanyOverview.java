@@ -26,21 +26,21 @@ public class CompanyOverview {
         panel.add(label, BorderLayout.NORTH);
 
         // Fetch historical PE and PB ratios
-        List<Double> peRatios = Ratios.fetchHistoricalPE(ticker);
-        List<Double> pbRatios = Ratios.fetchHistoricalPB(ticker);
+        List<RatioData> peRatios = Ratios.fetchHistoricalPE(ticker);
+        List<RatioData> pbRatios = Ratios.fetchHistoricalPB(ticker);
 
         System.out.println("PE Ratios: " + peRatios);  // Debugging statement
         System.out.println("PB Ratios: " + pbRatios);  // Debugging statement
 
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
-        for (int i = 0; i < peRatios.size(); i++) {
-            peDataset.addValue(peRatios.get(i), "PE Ratio", String.valueOf(i + 1));
+        for (RatioData data : peRatios) {
+            peDataset.addValue(data.getValue(), "PE Ratio", data.getDate());
         }
 
         DefaultCategoryDataset pbDataset = new DefaultCategoryDataset();
-        for (int i = 0; i < pbRatios.size(); i++) {
-            pbDataset.addValue(pbRatios.get(i), "PB Ratio", String.valueOf(i + 1));
+        for (RatioData data : pbRatios) {
+            pbDataset.addValue(data.getValue(), "PB Ratio", data.getDate());
         }
 
         // Check if datasets are populated
