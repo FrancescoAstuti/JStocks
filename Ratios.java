@@ -42,9 +42,9 @@ public class Ratios {
             } else {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    String date = jsonObject.getString("date");
+                    String year = jsonObject.getString("calendarYear");
                     double pe = jsonObject.getDouble("priceEarningsRatio");
-                    peRatios.add(new RatioData(date, pe));
+                    peRatios.add(new RatioData(year, pe));
                 }
             }
         } catch (Exception e) {
@@ -81,9 +81,9 @@ public class Ratios {
             } else {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    String date = jsonObject.getString("date");
+                    String year = jsonObject.getString("calendarYear");
                     double pb = jsonObject.getDouble("priceToBookRatio");
-                    pbRatios.add(new RatioData(date, pb));
+                    pbRatios.add(new RatioData(year, pb));
                 }
             }
         } catch (Exception e) {
@@ -94,16 +94,16 @@ public class Ratios {
 }
 
 class RatioData {
-    private String date;
+    private String year;
     private double value;
 
-    public RatioData(String date, double value) {
-        this.date = date;
+    public RatioData(String year, double value) {
+        this.year = year;
         this.value = value;
     }
 
-    public String getDate() {
-        return date;
+    public String getYear() {
+        return year;
     }
 
     public double getValue() {

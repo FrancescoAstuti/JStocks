@@ -35,12 +35,12 @@ public class CompanyOverview {
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
         for (RatioData data : peRatios) {
-            peDataset.addValue(data.getValue(), "PE Ratio", data.getDate());
+            peDataset.addValue(data.getValue(), "PE Ratio", data.getYear());
         }
 
         DefaultCategoryDataset pbDataset = new DefaultCategoryDataset();
         for (RatioData data : pbRatios) {
-            pbDataset.addValue(data.getValue(), "PB Ratio", data.getDate());
+            pbDataset.addValue(data.getValue(), "PB Ratio", data.getYear());
         }
 
         // Check if datasets are populated
