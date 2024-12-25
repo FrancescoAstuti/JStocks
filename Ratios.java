@@ -8,16 +8,16 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 public class Ratios {
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
 
     public static List<RatioData> fetchHistoricalPE(String ticker) {
-        Map<String, List<Double>> yearlyPERatios = new HashMap<>();
+        List<RatioData> peRatios = new ArrayList<>();
         try {
             URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=quarter&apikey=" + API_KEY);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -42,34 +42,24 @@ public class Ratios {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 String date = jsonObject.getString("date");
-                String year = date.split("-")[0];  // Extract year from date
                 double pe = jsonObject.optDouble("priceEarningsRatio", Double.NaN);  // Use "priceEarningsRatio", handle missing fields
-                if (!Double.isNaN(pe) && (2024 - Integer.parseInt(year)) < 20) {  // Filter for the last 20 years
-                    System.out.println("Date: " + date + ", Year: " + year + ", PE: " + pe);  // Debugging statement
-                    yearlyPERatios.computeIfAbsent(year, k -> new ArrayList<>()).add(pe);
+                if (!Double.isNaN(pe) && (2024 - Integer.parseInt(date.split("-")[0])) < 20) {  // Filter for the last 20 years
+                    System.out.println("Date: " + date + ", PE: " + pe);  // Debugging statement
+                    peRatios.add(new RatioData(date, pe));
                 }
             }
+
+            // Sort the list by date in ascending order
+            Collections.sort(peRatios, Comparator.comparing(RatioData::getDate));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // Aggregate quarterly data to yearly data (average)
-        List<RatioData> peRatios = new ArrayList<>();
-        for (Map.Entry<String, List<Double>> entry : yearlyPERatios.entrySet()) {
-            String year = entry.getKey();
-            List<Double> values = entry.getValue();
-            double averagePE = values.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
-            peRatios.add(new RatioData(year, averagePE));
-        }
-
-        // Sort the list by year in ascending order
-        peRatios.sort((r1, r2) -> r1.getYear().compareTo(r2.getYear()));
-
         return peRatios;
     }
 
     public static List<RatioData> fetchHistoricalPB(String ticker) {
-        Map<String, List<Double>> yearlyPBRatios = new HashMap<>();
+        List<RatioData> pbRatios = new ArrayList<>();
         try {
             URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=quarter&apikey=" + API_KEY);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -94,44 +84,34 @@ public class Ratios {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 String date = jsonObject.getString("date");
-                String year = date.split("-")[0];  // Extract year from date
                 double pb = jsonObject.optDouble("priceToBookRatio", Double.NaN);  // Use "priceToBookRatio", handle missing fields
-                if (!Double.isNaN(pb) && (2024 - Integer.parseInt(year)) < 20) {  // Filter for the last 20 years
-                    System.out.println("Date: " + date + ", Year: " + year + ", PB: " + pb);  // Debugging statement
-                    yearlyPBRatios.computeIfAbsent(year, k -> new ArrayList<>()).add(pb);
+                if (!Double.isNaN(pb) && (2024 - Integer.parseInt(date.split("-")[0])) < 20) {  // Filter for the last 20 years
+                    System.out.println("Date: " + date + ", PB: " + pb);  // Debugging statement
+                    pbRatios.add(new RatioData(date, pb));
                 }
             }
+
+            // Sort the list by date in ascending order
+            Collections.sort(pbRatios, Comparator.comparing(RatioData::getDate));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // Aggregate quarterly data to yearly data (average)
-        List<RatioData> pbRatios = new ArrayList<>();
-        for (Map.Entry<String, List<Double>> entry : yearlyPBRatios.entrySet()) {
-            String year = entry.getKey();
-            List<Double> values = entry.getValue();
-            double averagePB = values.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
-            pbRatios.add(new RatioData(year, averagePB));
-        }
-
-        // Sort the list by year in ascending order
-        pbRatios.sort((r1, r2) -> r1.getYear().compareTo(r2.getYear()));
-
         return pbRatios;
     }
 }
 
 class RatioData {
-    private String year;
+    private String date;
     private double value;
 
-    public RatioData(String year, double value) {
-        this.year = year;
+    public RatioData(String date, double value) {
+        this.date = date;
         this.value = value;
     }
 
-    public String getYear() {
-        return year;
+    public String getDate() {
+        return date;
     }
 
     public double getValue() {

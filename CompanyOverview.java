@@ -3,6 +3,8 @@ package afin.jstocks;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 
@@ -35,31 +37,36 @@ public class CompanyOverview {
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
         for (RatioData data : peRatios) {
-            peDataset.addValue(data.getValue(), "PE Ratio", data.getYear());
+            String year = data.getDate().split("-")[0];  // Extract year from date
+            peDataset.addValue(data.getValue(), "PE Ratio", data.getDate());
         }
 
         DefaultCategoryDataset pbDataset = new DefaultCategoryDataset();
         for (RatioData data : pbRatios) {
-            pbDataset.addValue(data.getValue(), "PB Ratio", data.getYear());
+            String year = data.getDate().split("-")[0];  // Extract year from date
+            pbDataset.addValue(data.getValue(), "PB Ratio", data.getDate());
         }
-
-        // Check if datasets are populated
-        System.out.println("PE Dataset: " + peDataset.getRowCount() + " rows, " + peDataset.getColumnCount() + " columns");  // Debugging statement
-        System.out.println("PB Dataset: " + pbDataset.getRowCount() + " rows, " + pbDataset.getColumnCount() + " columns");  // Debugging statement
 
         // Create the PE chart
         JFreeChart peChart = ChartFactory.createLineChart(
-                "10-Year Historical PE Ratios",
-                "Year", "PE Ratio",
+                "20-Year Historical PE Ratios",
+                "Date", "PE Ratio",
                 peDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the PB chart
         JFreeChart pbChart = ChartFactory.createLineChart(
-                "10-Year Historical PB Ratios",
-                "Year", "PB Ratio",
+                "20-Year Historical PB Ratios",
+                "Date", "PB Ratio",
                 pbDataset, PlotOrientation.VERTICAL,
                 true, true, false);
+
+        // Rotate category labels to display only years and avoid overlap
+        CategoryAxis peCategoryAxis = peChart.getCategoryPlot().getDomainAxis();
+        peCategoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+
+        CategoryAxis pbCategoryAxis = pbChart.getCategoryPlot().getDomainAxis();
+        pbCategoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
 
         // Create chart panels
         ChartPanel peChartPanel = new ChartPanel(peChart);
