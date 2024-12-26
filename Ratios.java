@@ -8,8 +8,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class Ratios {
@@ -27,8 +25,8 @@ public class Ratios {
             System.out.println("PE API Response Code: " + responseCode);  // Debugging statement
 
             BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder content = new StringBuilder();
             String inputLine;
+            StringBuilder content = new StringBuilder();
             while ((inputLine = in.readLine()) != null) {
                 content.append(inputLine);
             }
@@ -39,19 +37,16 @@ public class Ratios {
             System.out.println("PE API Response: " + content.toString());  // Debugging statement
 
             JSONArray jsonArray = new JSONArray(content.toString());
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                String date = jsonObject.getString("date");
-                double pe = jsonObject.optDouble("priceEarningsRatio", Double.NaN);  // Use "priceEarningsRatio", handle missing fields
-                if (!Double.isNaN(pe) && (2024 - Integer.parseInt(date.split("-")[0])) < 20) {  // Filter for the last 20 years
-                    System.out.println("Date: " + date + ", PE: " + pe);  // Debugging statement
+            if (jsonArray.length() == 0) {
+                System.out.println("No historical PE data available for ticker: " + ticker);
+            } else {
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String date = jsonObject.getString("date");
+                    double pe = jsonObject.getDouble("priceEarningsRatio");
                     peRatios.add(new RatioData(date, pe));
                 }
             }
-
-            // Sort the list by date in ascending order
-            Collections.sort(peRatios, Comparator.comparing(RatioData::getDate));
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -69,8 +64,8 @@ public class Ratios {
             System.out.println("PB API Response Code: " + responseCode);  // Debugging statement
 
             BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder content = new StringBuilder();
             String inputLine;
+            StringBuilder content = new StringBuilder();
             while ((inputLine = in.readLine()) != null) {
                 content.append(inputLine);
             }
@@ -81,23 +76,59 @@ public class Ratios {
             System.out.println("PB API Response: " + content.toString());  // Debugging statement
 
             JSONArray jsonArray = new JSONArray(content.toString());
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                String date = jsonObject.getString("date");
-                double pb = jsonObject.optDouble("priceToBookRatio", Double.NaN);  // Use "priceToBookRatio", handle missing fields
-                if (!Double.isNaN(pb) && (2024 - Integer.parseInt(date.split("-")[0])) < 20) {  // Filter for the last 20 years
-                    System.out.println("Date: " + date + ", PB: " + pb);  // Debugging statement
+            if (jsonArray.length() == 0) {
+                System.out.println("No historical PB data available for ticker: " + ticker);
+            } else {
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String date = jsonObject.getString("date");
+                    double pb = jsonObject.getDouble("priceToBookRatio");
                     pbRatios.add(new RatioData(date, pb));
                 }
             }
-
-            // Sort the list by date in ascending order
-            Collections.sort(pbRatios, Comparator.comparing(RatioData::getDate));
-
         } catch (Exception e) {
             e.printStackTrace();
         }
         return pbRatios;
+    }
+
+    public static List<RatioData> fetchQuarterlyEPS(String ticker) {
+        List<RatioData> epsRatios = new ArrayList<>();
+        try {
+            URL url = new URL("https://financialmodelingprep.com/api/v3/income-statement/" + ticker + "?period=quarter&apikey=" + API_KEY);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("EPS API Response Code: " + responseCode);  // Debugging statement
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+
+            in.close();
+            conn.disconnect();
+
+            System.out.println("EPS API Response: " + content.toString());  // Debugging statement
+
+            JSONArray jsonArray = new JSONArray(content.toString());
+            if (jsonArray.length() == 0) {
+                System.out.println("No quarterly EPS data available for ticker: " + ticker);
+            } else {
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String date = jsonObject.getString("date");
+                    double eps = jsonObject.getDouble("eps");
+                    epsRatios.add(new RatioData(date, eps));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return epsRatios;
     }
 }
 
