@@ -21,6 +21,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,6 +44,18 @@ public class CompanyOverview {
         System.out.println("PE Ratios: " + peRatios);  // Debugging statement
         System.out.println("PB Ratios: " + pbRatios);  // Debugging statement
 
+        // Filter data to the last 10 years
+        LocalDate tenYearsAgo = LocalDate.now().minusYears(10);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        peRatios = peRatios.stream()
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(tenYearsAgo))
+                .collect(Collectors.toList());
+
+        pbRatios = pbRatios.stream()
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(tenYearsAgo))
+                .collect(Collectors.toList());
+
         // Calculate average for PE ratios
         double peAverage = calculateAverage(peRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
 
@@ -61,14 +75,14 @@ public class CompanyOverview {
 
         // Create the PE chart
         JFreeChart peChart = ChartFactory.createLineChart(
-                "20-Year Historical PE Ratios",
+                "10-Year Historical PE Ratios",
                 "Date", "PE Ratio",
                 peDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the PB chart
         JFreeChart pbChart = ChartFactory.createLineChart(
-                "20-Year Historical PB Ratios",
+                "10-Year Historical PB Ratios",
                 "Date", "PB Ratio",
                 pbDataset, PlotOrientation.VERTICAL,
                 true, true, false);
