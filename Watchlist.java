@@ -1,6 +1,5 @@
 package afin.jstocks;
 
-import afin.jstocks.Estimates;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -37,91 +36,92 @@ public class Watchlist {
         }
         return columnNames;
     }
+
+    public void createAndShowGUI() {
+        JFrame frame = new JFrame("Watchlist");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setSize(900, 600);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        String[] dynamicColumnNames = getDynamicColumnNames();
+        tableModel = new DefaultTableModel(new Object[]{
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
+            "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
+            dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
+            dynamicColumnNames[3], dynamicColumnNames[4],
+            "PEG (3Y)"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 8 || column == 9;
+            }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                switch (columnIndex) {
+                    case 2: case 3: case 4: case 5: case 6: case 7: 
+                    case 8: case 9: case 10: case 11: case 12: case 13: 
+                    case 14: case 15:
+                        return Double.class;
+                    default:
+                        return String.class;
+                }
+            }
+        };
+
+        watchlistTable = new JTable(tableModel);
+
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        setupTableSorter(sorter);
+        watchlistTable.setRowSorter(sorter);
+
+        watchlistTable.getTableHeader().setReorderingAllowed(true);
+        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+
+        JScrollPane scrollPane = new JScrollPane(watchlistTable);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        setupColumnControlPanel();
+        mainPanel.add(columnControlPanel, BorderLayout.WEST);
+
+        JPanel buttonPanel = new JPanel();
+        setupButtonPanel(buttonPanel);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        frame.add(mainPanel);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+
+        loadColumnSettings();
+        loadWatchlist();
+
+        watchlistTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = watchlistTable.rowAtPoint(evt.getPoint());
+                int col = watchlistTable.columnAtPoint(evt.getPoint());
+                int tickerColumnIndex = watchlistTable.getColumnModel().getColumnIndex("Ticker");
+                if (row >= 0 && col == tickerColumnIndex) {
+                    int modelRow = watchlistTable.convertRowIndexToModel(row);
+                    String ticker = (String) tableModel.getValueAt(modelRow, col);
+                    String companyName = (String) tableModel.getValueAt(modelRow, watchlistTable.convertColumnIndexToModel(0)); // Assuming company name is in the first column (index 0)
+                    CompanyOverview.showCompanyOverview(ticker, companyName);
+                }
+            }
+        });
+
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                saveColumnSettings();
+                saveWatchlist();
+            }
+        });
+    }
     
-public void createAndShowGUI() {
-    JFrame frame = new JFrame("Watchlist");
-    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    frame.setSize(900, 600);
-
-    JPanel mainPanel = new JPanel(new BorderLayout());
-
-    String[] dynamicColumnNames = getDynamicColumnNames();
-    tableModel = new DefaultTableModel(new Object[]{
-        "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
-        "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-        dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
-        dynamicColumnNames[3], dynamicColumnNames[4],
-        "PEG (3Y)"
-    }, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return column == 8 || column == 9;
-        }
-
-        @Override
-        public Class<?> getColumnClass(int columnIndex) {
-            switch (columnIndex) {
-                case 2: case 3: case 4: case 5: case 6: case 7: 
-                case 8: case 9: case 10: case 11: case 12: case 13: 
-                case 14: case 15:
-                    return Double.class;
-                default:
-                    return String.class;
-            }
-        }
-    };
-
-    watchlistTable = new JTable(tableModel);
-
-    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-    setupTableSorter(sorter);
-    watchlistTable.setRowSorter(sorter);
-
-    watchlistTable.getTableHeader().setReorderingAllowed(true);
-    watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-    watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
-
-    JScrollPane scrollPane = new JScrollPane(watchlistTable);
-    mainPanel.add(scrollPane, BorderLayout.CENTER);
-
-    setupColumnControlPanel();
-    mainPanel.add(columnControlPanel, BorderLayout.WEST);
-
-    JPanel buttonPanel = new JPanel();
-    setupButtonPanel(buttonPanel);
-    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-    frame.add(mainPanel);
-    frame.setLocationRelativeTo(null);
-    frame.setVisible(true);
-
-    loadColumnSettings();
-    loadWatchlist();
-
-    watchlistTable.addMouseListener(new java.awt.event.MouseAdapter() {
-        @Override
-        public void mouseClicked(java.awt.event.MouseEvent evt) {
-            int row = watchlistTable.rowAtPoint(evt.getPoint());
-            int col = watchlistTable.columnAtPoint(evt.getPoint());
-            int tickerColumnIndex = watchlistTable.getColumnModel().getColumnIndex("Ticker");
-            if (row >= 0 && col == tickerColumnIndex) {
-                String ticker = (String) tableModel.getValueAt(row, col);
-                String companyName = (String) tableModel.getValueAt(row, watchlistTable.convertColumnIndexToModel(0)); // Assuming company name is in the first column (index 0)
-                CompanyOverview.showCompanyOverview(ticker, companyName);
-            }
-        }
-    });
-
-    frame.addWindowListener(new java.awt.event.WindowAdapter() {
-        @Override
-        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-            saveColumnSettings();
-            saveWatchlist();
-        }
-    });
-}
-
-    private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
+private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
         for (int i = 2; i <= 15; i++) {
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
@@ -154,7 +154,7 @@ public void createAndShowGUI() {
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
     }
-    
+
     private void toggleColumnVisibility(String columnName, boolean visible) {
         TableColumnModel columnModel = watchlistTable.getColumnModel();
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
@@ -192,12 +192,12 @@ public void createAndShowGUI() {
             try {
                 JSONObject stockData = fetchStockData(ticker);
                 JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
-                
+
                 if (stockData != null) {
                     String name = stockData.getString("name");
                     double price = round(stockData.getDouble("price"), 2);
                     JSONObject ratios = fetchStockRatios(ticker);
-                    
+
                     double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
                     double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
@@ -206,44 +206,30 @@ public void createAndShowGUI() {
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                    
+
                     double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
                     tableModel.addRow(new Object[]{
-                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, 
+                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
                         grahamNumber, 0.0, 0.0, epsCurrentYear, 0.0, epsYear3, 0.0, 0.0, peg3Year
                     });
-                    
+
                     saveWatchlist();
                 } else {
-                    JOptionPane.showMessageDialog(null, 
-                        "Failed to fetch stock data for " + ticker, 
-                        "Error", 
+                    JOptionPane.showMessageDialog(null,
+                        "Failed to fetch stock data for " + ticker,
+                        "Error",
                         JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null, 
-                    "Error fetching stock data: " + e.getMessage(), 
-                    "Error", 
+                JOptionPane.showMessageDialog(null,
+                    "Error fetching stock data: " + e.getMessage(),
+                    "Error",
                     JOptionPane.ERROR_MESSAGE);
             }
         }
     }
-    
-private void showCompanyOverview(String ticker, String companyName) {
-    JFrame overviewFrame = new JFrame(ticker);
-    overviewFrame.setSize(400, 200);
-    overviewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
-    JPanel panel = new JPanel(new BorderLayout());
-    JLabel label = new JLabel("Company Name: " + companyName, SwingConstants.CENTER);
-    panel.add(label, BorderLayout.CENTER);
-
-    overviewFrame.add(panel);
-    overviewFrame.setLocationRelativeTo(null);
-    overviewFrame.setVisible(true);
-}
     
 private void refreshWatchlist() {
         int rowCount = tableModel.getRowCount();
@@ -253,12 +239,12 @@ private void refreshWatchlist() {
             try {
                 JSONObject stockData = fetchStockData(ticker);
                 JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
-                
+
                 if (stockData != null) {
                     String name = stockData.getString("name");
                     double price = round(stockData.getDouble("price"), 2);
                     JSONObject ratios = fetchStockRatios(ticker);
-                    
+
                     double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
                     double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
@@ -267,7 +253,7 @@ private void refreshWatchlist() {
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                    
+
                     double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
                     tableModel.setValueAt(name, modelRow, 0);
@@ -283,9 +269,9 @@ private void refreshWatchlist() {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null, 
-                    "Error refreshing data for " + ticker + ": " + e.getMessage(), 
-                    "Error", 
+                JOptionPane.showMessageDialog(null,
+                    "Error refreshing data for " + ticker + ": " + e.getMessage(),
+                    "Error",
                     JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -364,64 +350,64 @@ private void refreshWatchlist() {
         }
         return null;
     }
-
+    
 private void saveColumnSettings() {
-    Properties properties = new Properties();
-    TableColumnModel columnModel = watchlistTable.getColumnModel();
+        Properties properties = new Properties();
+        TableColumnModel columnModel = watchlistTable.getColumnModel();
 
-    // Save the column order and visibility
-    for (int i = 0; i < columnModel.getColumnCount(); i++) {
-        TableColumn column = columnModel.getColumn(i);
-        String columnName = column.getHeaderValue().toString();
-        properties.setProperty("column" + i + ".name", columnName);
-        properties.setProperty("column" + i + ".index", String.valueOf(columnModel.getColumnIndex(columnName)));
-        properties.setProperty("column" + i + ".visible", String.valueOf(column.getMaxWidth() != 0));
-    }
+        // Save the column order and visibility
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            TableColumn column = columnModel.getColumn(i);
+            String columnName = column.getHeaderValue().toString();
+            properties.setProperty("column" + i + ".name", columnName);
+            properties.setProperty("column" + i + ".index", String.valueOf(columnModel.getColumnIndex(columnName)));
+            properties.setProperty("column" + i + ".visible", String.valueOf(column.getMaxWidth() != 0));
+        }
 
-    try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
-        properties.store(out, "Column Order and Visibility Settings");
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-}
-
-private void loadColumnSettings() {
-    Properties properties = new Properties();
-    File settingsFile = new File(COLUMN_SETTINGS_FILE);
-
-    if (settingsFile.exists()) {
-        try (FileInputStream in = new FileInputStream(settingsFile)) {
-            properties.load(in);
-
-            TableColumnModel columnModel = watchlistTable.getColumnModel();
-            for (int i = 0; i < columnModel.getColumnCount(); i++) {
-                String columnName = properties.getProperty("column" + i + ".name");
-                if (columnName != null) {
-                    int columnIndex = Integer.parseInt(properties.getProperty("column" + i + ".index"));
-                    boolean isVisible = Boolean.parseBoolean(properties.getProperty("column" + i + ".visible"));
-
-                    TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
-                    columnModel.moveColumn(columnModel.getColumnIndex(columnName), columnIndex);
-                    toggleColumnVisibility(columnName, isVisible);
-
-                    for (Component comp : columnControlPanel.getComponents()) {
-                        if (comp instanceof JCheckBox) {
-                            JCheckBox checkBox = (JCheckBox) comp;
-                            if (checkBox.getText().equals(columnName)) {
-                                checkBox.setSelected(isVisible);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+        try (FileOutputStream out = new FileOutputStream(COLUMN_SETTINGS_FILE)) {
+            properties.store(out, "Column Order and Visibility Settings");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-}
-    
-private void saveWatchlist() {
+
+    private void loadColumnSettings() {
+        Properties properties = new Properties();
+        File settingsFile = new File(COLUMN_SETTINGS_FILE);
+
+        if (settingsFile.exists()) {
+            try (FileInputStream in = new FileInputStream(settingsFile)) {
+                properties.load(in);
+
+                TableColumnModel columnModel = watchlistTable.getColumnModel();
+                for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                    String columnName = properties.getProperty("column" + i + ".name");
+                    if (columnName != null) {
+                        int columnIndex = Integer.parseInt(properties.getProperty("column" + i + ".index"));
+                        boolean isVisible = Boolean.parseBoolean(properties.getProperty("column" + i + ".visible"));
+
+                        TableColumn column = columnModel.getColumn(columnModel.getColumnIndex(columnName));
+                        columnModel.moveColumn(columnModel.getColumnIndex(columnName), columnIndex);
+                        toggleColumnVisibility(columnName, isVisible);
+
+                        for (Component comp : columnControlPanel.getComponents()) {
+                            if (comp instanceof JCheckBox) {
+                                JCheckBox checkBox = (JCheckBox) comp;
+                                if (checkBox.getText().equals(columnName)) {
+                                    checkBox.setSelected(isVisible);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             JSONObject jsonObject = new JSONObject();
