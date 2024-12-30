@@ -21,11 +21,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class CompanyOverview {
 
@@ -66,6 +70,9 @@ public class CompanyOverview {
         double peAverage = calculateAverage(peRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
         double pbAverage = calculateAverage(pbRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
         double epsAverage = calculateAverage(epsRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
+
+        // Save the data to a JSON file
+        saveDataToFile(ticker, peRatios, pbRatios, peAverage, pbAverage);
 
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
@@ -174,5 +181,37 @@ public class CompanyOverview {
         marker.setPaint(color);
         marker.setStroke(new BasicStroke(1.0f));  // Set the stroke width for the marker line
         chart.getCategoryPlot().addRangeMarker(marker, Layer.FOREGROUND);
+    }
+
+    private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios, double peAverage, double pbAverage) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("ticker", ticker);
+        jsonObject.put("peAverage", peAverage);
+        jsonObject.put("pbAverage", pbAverage);
+
+        JSONArray peArray = new JSONArray();
+        for (RatioData data : peRatios) {
+            JSONObject dataObject = new JSONObject();
+            dataObject.put("date", data.getDate());
+            dataObject.put("value", data.getValue());
+            peArray.put(dataObject);
+        }
+        jsonObject.put("peRatios", peArray);
+
+        JSONArray pbArray = new JSONArray();
+        for (RatioData data : pbRatios) {
+            JSONObject dataObject = new JSONObject();
+            dataObject.put("date", data.getDate());
+            dataObject.put("value", data.getValue());
+            pbArray.put(dataObject);
+        }
+        jsonObject.put("pbRatios", pbArray);
+
+        try (FileWriter file = new FileWriter("CompanyOverview.json")) {
+            file.write(jsonObject.toString());
+            file.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
