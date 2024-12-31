@@ -21,17 +21,23 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 public class CompanyOverview {
+
+    private static final String COMPANY_OVERVIEW_FILE = "CompanyOverview.json";
 
     public static void showCompanyOverview(String ticker, String companyName) {
         JFrame overviewFrame = new JFrame("Company Overview: " + ticker);
@@ -70,9 +76,6 @@ public class CompanyOverview {
         double peAverage = calculateAverage(peRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
         double pbAverage = calculateAverage(pbRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
         double epsAverage = calculateAverage(epsRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
-
-        // Save the data to a JSON file
-        saveDataToFile(ticker, peRatios, pbRatios, peAverage, pbAverage);
 
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
@@ -152,6 +155,9 @@ public class CompanyOverview {
         overviewFrame.add(panel);
         overviewFrame.setLocationRelativeTo(null);
         overviewFrame.setVisible(true);
+
+        // Save data to JSON
+        saveCompanyOverviewData(ticker, companyName, peRatios, pbRatios, epsRatios);
     }
 
     private static void customizeAxis(CategoryAxis axis) {
@@ -183,11 +189,36 @@ public class CompanyOverview {
         chart.getCategoryPlot().addRangeMarker(marker, Layer.FOREGROUND);
     }
 
-    private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios, double peAverage, double pbAverage) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("ticker", ticker);
-        jsonObject.put("peAverage", peAverage);
-        jsonObject.put("pbAverage", pbAverage);
+    private static void saveCompanyOverviewData(String ticker, String companyName, List<RatioData> peRatios, List<RatioData> pbRatios, List<RatioData> epsRatios) {
+        JSONArray jsonArray;
+        File file = new File(COMPANY_OVERVIEW_FILE);
+
+        // Read existing data
+        if (file.exists()) {
+            try (FileReader reader = new FileReader(file)) {
+                JSONTokener tokener = new JSONTokener(reader);
+                jsonArray = new JSONArray(tokener);
+            } catch (IOException e) {
+                e.printStackTrace();
+                jsonArray = new JSONArray();
+            }
+        } else {
+            jsonArray = new JSONArray();
+        }
+
+        // Remove existing entry for the same ticker
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            if (jsonObject.getString("ticker").equals(ticker)) {
+                jsonArray.remove(i);
+                break;
+            }
+        }
+
+        // Create new entry
+        JSONObject companyData = new JSONObject();
+        companyData.put("ticker", ticker);
+        companyData.put("companyName", companyName);
 
         JSONArray peArray = new JSONArray();
         for (RatioData data : peRatios) {
@@ -196,7 +227,7 @@ public class CompanyOverview {
             dataObject.put("value", data.getValue());
             peArray.put(dataObject);
         }
-        jsonObject.put("peRatios", peArray);
+        companyData.put("peRatios", peArray);
 
         JSONArray pbArray = new JSONArray();
         for (RatioData data : pbRatios) {
@@ -205,11 +236,23 @@ public class CompanyOverview {
             dataObject.put("value", data.getValue());
             pbArray.put(dataObject);
         }
-        jsonObject.put("pbRatios", pbArray);
+        companyData.put("pbRatios", pbArray);
 
-        try (FileWriter file = new FileWriter("CompanyOverview.json")) {
-            file.write(jsonObject.toString());
-            file.flush();
+        JSONArray epsArray = new JSONArray();
+        for (RatioData data : epsRatios) {
+            JSONObject dataObject = new JSONObject();
+            dataObject.put("date", data.getDate());
+            dataObject.put("value", data.getValue());
+            epsArray.put(dataObject);
+        }
+        companyData.put("epsRatios", epsArray);
+
+        // Append new entry
+        jsonArray.put(companyData);
+
+        // Write updated data back to file
+        try (FileWriter writer = new FileWriter(COMPANY_OVERVIEW_FILE)) {
+            writer.write(jsonArray.toString(2));
         } catch (IOException e) {
             e.printStackTrace();
         }
