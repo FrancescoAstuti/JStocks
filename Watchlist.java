@@ -30,8 +30,8 @@ public class Watchlist {
 
     private String[] getDynamicColumnNames() {
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        String[] columnNames = new String[5];
-        for (int i = 0; i < 5; i++) {
+        String[] columnNames = new String[3];  // Changed from 5 to 3
+        for (int i = 0; i < 3; i++) {         // Changed from 5 to 3
             columnNames[i] = "EPS " + (currentYear + i);
         }
         return columnNames;
@@ -50,8 +50,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
             "EPS TTM",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
-            dynamicColumnNames[3], dynamicColumnNames[4], "Debt to Equity",
-            "PEG (3Y)"
+            "Debt to Equity", "PEG (3Y)"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -63,7 +62,7 @@ public class Watchlist {
                 switch (columnIndex) {
                     case 2: case 3: case 4: case 5: case 6: case 7: 
                     case 8: case 9: case 10: case 11: case 12: case 13: 
-                    case 14: case 15: case 16: case 17:
+                    case 14: case 15:
                         return Double.class;
                     default:
                         return String.class;
@@ -111,7 +110,7 @@ public class Watchlist {
         frame.setVisible(true);
     }
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
-        for (int i = 2; i <= 17; i++) {
+        for (int i = 2; i <= 15; i++) { // Changed from 17 to 15 due to removed columns
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
         }
@@ -199,8 +198,6 @@ public class Watchlist {
                         jsonObject.optDouble("epsCurrentYear", 0.0),
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
-                        jsonObject.optDouble("epsYear4", 0.0),
-                        jsonObject.optDouble("epsYear5", 0.0),
                         jsonObject.optDouble("debtToEquity", 0.0),
                         jsonObject.optDouble("peg3Year", 0.0)
                     };
@@ -214,15 +211,7 @@ public class Watchlist {
                     "Error loading watchlist: " + e.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                    "Error parsing watchlist data: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
             }
-        } else {
-            System.out.println("Watchlist file not found: " + file.getAbsolutePath());
         }
     }
     private void saveWatchlist() {
@@ -246,10 +235,8 @@ public class Watchlist {
             jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 11));
             jsonObject.put("epsNextYear", tableModel.getValueAt(i, 12));
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 13));
-            jsonObject.put("epsYear4", tableModel.getValueAt(i, 14));
-            jsonObject.put("epsYear5", tableModel.getValueAt(i, 15));
-            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16));
-            jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
+            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 14));
+            jsonObject.put("peg3Year", tableModel.getValueAt(i, 15));
             jsonArray.put(jsonObject);
         }
 
@@ -352,6 +339,7 @@ public class Watchlist {
                     double debtToEquity = round(ratios.optDouble("debtToEquityTTM", 0.0), 2);
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
 
                     double pbAvg = fetchAveragePB(ticker);
@@ -361,7 +349,7 @@ public class Watchlist {
                     tableModel.addRow(new Object[]{
                         name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
                         grahamNumber, pbAvg, peAvg, epsTtm,
-                        epsCurrentYear, 0.0, epsYear3, 0.0, 0.0, debtToEquity, peg3Year
+                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, peg3Year
                     });
 
                     saveWatchlist();
@@ -399,6 +387,7 @@ public class Watchlist {
                     double debtToEquity = round(ratios.optDouble("debtToEquityTTM", 0.0), 2);
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
                     double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
 
@@ -410,9 +399,10 @@ public class Watchlist {
                     tableModel.setValueAt(grahamNumber, modelRow, 7);
                     tableModel.setValueAt(epsTtm, modelRow, 10);
                     tableModel.setValueAt(epsCurrentYear, modelRow, 11);
+                    tableModel.setValueAt(epsNextYear, modelRow, 12);
                     tableModel.setValueAt(epsYear3, modelRow, 13);
-                    tableModel.setValueAt(debtToEquity, modelRow, 16);
-                    tableModel.setValueAt(peg3Year, modelRow, 17);
+                    tableModel.setValueAt(debtToEquity, modelRow, 14);
+                    tableModel.setValueAt(peg3Year, modelRow, 15);
 
                     System.out.println("Refreshed stock data: " + ticker);
                 }
@@ -499,8 +489,6 @@ public class Watchlist {
                 if (data.length() > 0) {
                     return data.getJSONObject(0);
                 }
-            } else {
-                throw new IOException("Failed to get valid response from API. Response Code: " + responseCode);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -511,84 +499,82 @@ public class Watchlist {
         }
         return null;
     }
-    
+
     private double fetchAveragePB(String ticker) {
-    // This method fetches the average P/B ratio for the stock
-    String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
-    HttpURLConnection connection = null;
-    double sum = 0;
-    int count = 0;
+        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
+        HttpURLConnection connection = null;
+        double sum = 0;
+        int count = 0;
 
-    try {
-        URL url = new URL(urlString);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
+        try {
+            URL url = new URL(urlString);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode == 200) {
-            Scanner scanner = new Scanner(url.openStream());
-            String response = scanner.useDelimiter("\\Z").next();
-            scanner.close();
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                Scanner scanner = new Scanner(url.openStream());
+                String response = scanner.useDelimiter("\\Z").next();
+                scanner.close();
 
-            JSONArray data = new JSONArray(response);
-            for (int i = 0; i < data.length(); i++) {
-                JSONObject metrics = data.getJSONObject(i);
-                double pbRatio = metrics.optDouble("pbRatio", 0.0);
-                if (pbRatio > 0) {
-                    sum += pbRatio;
-                    count++;
+                JSONArray data = new JSONArray(response);
+                for (int i = 0; i < data.length(); i++) {
+                    JSONObject metrics = data.getJSONObject(i);
+                    double pbRatio = metrics.optDouble("pbRatio", 0.0);
+                    if (pbRatio > 0) {
+                        sum += pbRatio;
+                        count++;
+                    }
                 }
             }
-        }
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        if (connection != null) {
-            connection.disconnect();
-        }
-    }
-
-    return count > 0 ? round(sum / count, 2) : 0.0;
-}
-
-private double fetchAveragePE(String ticker) {
-    // This method fetches the average P/E ratio for the stock
-    String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
-    HttpURLConnection connection = null;
-    double sum = 0;
-    int count = 0;
-
-    try {
-        URL url = new URL(urlString);
-        connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode == 200) {
-            Scanner scanner = new Scanner(url.openStream());
-            String response = scanner.useDelimiter("\\Z").next();
-            scanner.close();
-
-            JSONArray data = new JSONArray(response);
-            for (int i = 0; i < data.length(); i++) {
-                JSONObject metrics = data.getJSONObject(i);
-                double peRatio = metrics.optDouble("peRatio", 0.0);
-                if (peRatio > 0) {
-                    sum += peRatio;
-                    count++;
-                }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
             }
         }
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        if (connection != null) {
-            connection.disconnect();
-        }
+
+        return count > 0 ? round(sum / count, 2) : 0.0;
     }
 
-    return count > 0 ? round(sum / count, 2) : 0.0;
-}
+    private double fetchAveragePE(String ticker) {
+        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
+        HttpURLConnection connection = null;
+        double sum = 0;
+        int count = 0;
+
+        try {
+            URL url = new URL(urlString);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                Scanner scanner = new Scanner(url.openStream());
+                String response = scanner.useDelimiter("\\Z").next();
+                scanner.close();
+
+                JSONArray data = new JSONArray(response);
+                for (int i = 0; i < data.length(); i++) {
+                    JSONObject metrics = data.getJSONObject(i);
+                    double peRatio = metrics.optDouble("peRatio", 0.0);
+                    if (peRatio > 0) {
+                        sum += peRatio;
+                        count++;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+
+        return count > 0 ? round(sum / count, 2) : 0.0;
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
@@ -609,3 +595,5 @@ private double fetchAveragePE(String ticker) {
         }
     }
 }
+    
+    
