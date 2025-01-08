@@ -30,8 +30,8 @@ public class Watchlist {
 
     private String[] getDynamicColumnNames() {
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        String[] columnNames = new String[3];  // Changed from 5 to 3
-        for (int i = 0; i < 3; i++) {         // Changed from 5 to 3
+        String[] columnNames = new String[3];
+        for (int i = 0; i < 3; i++) {
             columnNames[i] = "EPS " + (currentYear + i);
         }
         return columnNames;
@@ -48,7 +48,7 @@ public class Watchlist {
         tableModel = new DefaultTableModel(new Object[]{
             "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-            "EPS TTM", "ROE TTM",
+            "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
             "Debt to Equity", "PEG (3Y)"
         }, 0) {
@@ -62,7 +62,7 @@ public class Watchlist {
                 switch (columnIndex) {
                     case 2: case 3: case 4: case 5: case 6: case 7: 
                     case 8: case 9: case 10: case 11: case 12: case 13: 
-                    case 14: case 15:
+                    case 14: case 15: case 16:
                         return Double.class;
                     default:
                         return String.class;
@@ -110,7 +110,7 @@ public class Watchlist {
         frame.setVisible(true);
     }
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
-        for (int i = 2; i <= 15; i++) { // Changed from 17 to 15 due to removed columns
+        for (int i = 2; i <= 16; i++) {
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
         }
@@ -196,6 +196,7 @@ public class Watchlist {
                         jsonObject.optDouble("peAvg", 0.0),
                         jsonObject.optDouble("epsTtm", 0.0),
                         jsonObject.optDouble("roeTtm", 0.0),
+                        jsonObject.optDouble("aScore", 0.0),
                         jsonObject.optDouble("epsCurrentYear", 0.0),
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
@@ -215,6 +216,7 @@ public class Watchlist {
             }
         }
     }
+
     private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         File file = new File("watchlist.json");
@@ -234,11 +236,12 @@ public class Watchlist {
             jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
             jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
             jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
-            jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 12));
-            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 13));
-            jsonObject.put("epsYear3", tableModel.getValueAt(i, 14));
-            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 15));
-            jsonObject.put("peg3Year", tableModel.getValueAt(i, 16));
+            jsonObject.put("aScore", tableModel.getValueAt(i, 12));
+            jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
+            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
+            jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
+            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16));
+            jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
             jsonArray.put(jsonObject);
         }
 
@@ -319,7 +322,7 @@ public class Watchlist {
             }
         }
     }
-
+    
     private void addStock() {
         String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
         if (ticker != null && !ticker.trim().isEmpty()) {
@@ -349,10 +352,11 @@ public class Watchlist {
                     double pbAvg = fetchAveragePB(ticker);
                     double peAvg = fetchAveragePE(ticker);
                     double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
 
                     tableModel.addRow(new Object[]{
                         name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
-                        grahamNumber, pbAvg, peAvg, epsTtm, roeTtm,
+                        grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
                         epsCurrentYear, epsNextYear, epsYear3, debtToEquity, peg3Year
                     });
 
@@ -368,7 +372,6 @@ public class Watchlist {
             }
         }
     }
-
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
         int rowCount = tableModel.getRowCount();
@@ -395,6 +398,9 @@ public class Watchlist {
                     double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
                     double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                    double pbAvg = fetchAveragePB(ticker);
+                    double peAvg = fetchAveragePE(ticker);
+                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
 
                     tableModel.setValueAt(price, modelRow, 2);
                     tableModel.setValueAt(peTtm, modelRow, 3);
@@ -404,11 +410,12 @@ public class Watchlist {
                     tableModel.setValueAt(grahamNumber, modelRow, 7);
                     tableModel.setValueAt(epsTtm, modelRow, 10);
                     tableModel.setValueAt(roeTtm, modelRow, 11);
-                    tableModel.setValueAt(epsCurrentYear, modelRow, 12);
-                    tableModel.setValueAt(epsNextYear, modelRow, 13);
-                    tableModel.setValueAt(epsYear3, modelRow, 14);
-                    tableModel.setValueAt(debtToEquity, modelRow, 15);
-                    tableModel.setValueAt(peg3Year, modelRow, 16);
+                    tableModel.setValueAt(aScore, modelRow, 12);
+                    tableModel.setValueAt(epsCurrentYear, modelRow, 13);
+                    tableModel.setValueAt(epsNextYear, modelRow, 14);
+                    tableModel.setValueAt(epsYear3, modelRow, 15);
+                    tableModel.setValueAt(debtToEquity, modelRow, 16);
+                    tableModel.setValueAt(peg3Year, modelRow, 17);
 
                     System.out.println("Refreshed stock data: " + ticker);
                 }
@@ -581,6 +588,11 @@ public class Watchlist {
         }
 
         return count > 0 ? round(sum / count, 2) : 0.0;
+    }
+
+    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
+                                   double payoutRatio, double debtToEquity, double roe, double dividendYield) {
+        return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + (1 / debtToEquity) + 5 * roe + 20 * dividendYield;
     }
 
     public static void main(String[] args) {
