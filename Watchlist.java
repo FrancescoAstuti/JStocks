@@ -21,7 +21,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Calendar;
 
-public class Watchlist {
+    public class Watchlist {
     private JTable watchlistTable;
     private DefaultTableModel tableModel;
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
@@ -37,7 +37,7 @@ public class Watchlist {
         return columnNames;
     }
 
-public void createAndShowGUI() {
+    public void createAndShowGUI() {
     JFrame frame = new JFrame("Watchlist");
     frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Ensure custom handling of window close
     frame.setSize(1000, 600);
@@ -176,99 +176,103 @@ public void createAndShowGUI() {
     }
 
     private void loadWatchlist() {
-        File file = new File("watchlist.json");
-        System.out.println("Attempting to load watchlist from: " + file.getAbsolutePath());
-        
-        if (file.exists()) {
-            try (FileReader reader = new FileReader(file)) {
-                Scanner scanner = new Scanner(reader);
-                String json = scanner.useDelimiter("\\Z").next();
-                scanner.close();
+    File file = new File("watchlist.json");
+    System.out.println("Attempting to load watchlist from: " + file.getAbsolutePath());
+    
+    if (file.exists()) {
+        try (FileReader reader = new FileReader(file)) {
+            Scanner scanner = new Scanner(reader);
+            String json = scanner.useDelimiter("\\Z").next();
+            scanner.close();
 
-                System.out.println("Loading watchlist data...");
-                JSONArray jsonArray = new JSONArray(json);
-                System.out.println("Found " + jsonArray.length() + " stocks");
+            System.out.println("Loading watchlist data...");
+            JSONArray jsonArray = new JSONArray(json);
+            System.out.println("Found " + jsonArray.length() + " stocks");
 
-                // Clear existing table data
-                while (tableModel.getRowCount() > 0) {
-                    tableModel.removeRow(0);
-                }
-
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    Object[] rowData = new Object[]{
-                        jsonObject.optString("name", ""),
-                        jsonObject.optString("ticker", "").toUpperCase(),
-                        jsonObject.optDouble("price", 0.0),
-                        jsonObject.optDouble("peTtm", 0.0),
-                        jsonObject.optDouble("pbTtm", 0.0),
-                        jsonObject.optDouble("dividendYield", 0.0),
-                        jsonObject.optDouble("payoutRatio", 0.0),
-                        jsonObject.optDouble("grahamNumber", 0.0),
-                        jsonObject.optDouble("pbAvg", 0.0),
-                        jsonObject.optDouble("peAvg", 0.0),
-                        jsonObject.optDouble("epsTtm", 0.0),
-                        jsonObject.optDouble("roeTtm", 0.0),
-                        jsonObject.opt("debtToEquity").equals("n/a") ? "n/a" : jsonObject.optDouble("debtToEquity", 0.0),
-                        jsonObject.optDouble("aScore", 0.0),
-                        jsonObject.optDouble("epsCurrentYear", 0.0),
-                        jsonObject.optDouble("epsNextYear", 0.0),
-                        jsonObject.optDouble("epsYear3", 0.0),
-                        jsonObject.optDouble("peg3Year", 0.0)
-                    };
-                    tableModel.addRow(rowData);
-                    System.out.println("Added stock: " + jsonObject.optString("ticker", ""));
-                }
-                System.out.println("Watchlist loading completed");
-            } catch (IOException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                    "Error loading watchlist: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            // Clear existing table data
+            while (tableModel.getRowCount() > 0) {
+                tableModel.removeRow(0);
             }
-        }
-    }
-    private void saveWatchlist() {
-        JSONArray jsonArray = new JSONArray();
-        File file = new File("watchlist.json");
 
-        // Add new data to the JSON array
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("name", tableModel.getValueAt(i, 0));
-            jsonObject.put("ticker", tableModel.getValueAt(i, 1));
-            jsonObject.put("price", tableModel.getValueAt(i, 2));
-            jsonObject.put("peTtm", tableModel.getValueAt(i, 3));
-            jsonObject.put("pbTtm", tableModel.getValueAt(i, 4));
-            jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
-            jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
-            jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
-            jsonObject.put("pbAvg", tableModel.getValueAt(i, 8));
-            jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
-            jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
-            jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
-            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
-            jsonObject.put("aScore", tableModel.getValueAt(i, 12));
-            jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
-            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
-            jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
-            jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
-            jsonArray.put(jsonObject);
-        }
-
-        try (FileWriter fileWriter = new FileWriter("watchlist.json")) {
-            fileWriter.write(jsonArray.toString());
-            fileWriter.flush();
-            System.out.println("Watchlist saved successfully");
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                Object[] rowData = new Object[]{
+                    jsonObject.optString("name", ""),
+                    jsonObject.optString("ticker", "").toUpperCase(),
+                    jsonObject.optDouble("price", 0.0),
+                    jsonObject.optDouble("peTtm", 0.0),
+                    jsonObject.optDouble("pbTtm", 0.0),
+                    jsonObject.optDouble("dividendYield", 0.0),
+                    jsonObject.optDouble("payoutRatio", 0.0),
+                    jsonObject.optDouble("grahamNumber", 0.0),
+                    jsonObject.optDouble("pbAvg", 0.0),
+                    jsonObject.optDouble("peAvg", 0.0),
+                    jsonObject.optDouble("epsTtm", 0.0),
+                    jsonObject.optDouble("roeTtm", 0.0),
+                    jsonObject.opt("debtToEquity").equals("n/a") ? "n/a" : jsonObject.optDouble("debtToEquity", 0.0),
+                    jsonObject.optDouble("aScore", 0.0),
+                    jsonObject.optDouble("epsCurrentYear", 0.0),
+                    jsonObject.optDouble("epsNextYear", 0.0),
+                    jsonObject.optDouble("epsYear3", 0.0),
+                    jsonObject.optDouble("peg3Year", 0.0)
+                };
+                tableModel.addRow(rowData);
+                System.out.println("Added stock: " + jsonObject.optString("ticker", "") + " with price: " + jsonObject.optDouble("price", 0.0));
+            }
+            System.out.println("Watchlist loading completed");
         } catch (IOException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
-                "Error saving watchlist: " + e.getMessage(),
+                "Error loading watchlist: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
         }
+    } else {
+        System.out.println("Watchlist file does not exist.");
     }
+}
+    
+    private void saveWatchlist() {
+    System.out.println("Saving watchlist...");
+    JSONArray jsonArray = new JSONArray();
+    File file = new File("watchlist.json");
+
+    // Add new data to the JSON array
+    for (int i = 0; i < tableModel.getRowCount(); i++) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("name", tableModel.getValueAt(i, 0));
+        jsonObject.put("ticker", tableModel.getValueAt(i, 1));
+        jsonObject.put("price", tableModel.getValueAt(i, 2));
+        jsonObject.put("peTtm", tableModel.getValueAt(i, 3));
+        jsonObject.put("pbTtm", tableModel.getValueAt(i, 4));
+        jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
+        jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
+        jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
+        jsonObject.put("pbAvg", tableModel.getValueAt(i, 8));
+        jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
+        jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
+        jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
+        jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
+        jsonObject.put("aScore", tableModel.getValueAt(i, 12));
+        jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
+        jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
+        jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
+        jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
+        jsonArray.put(jsonObject);
+    }
+
+    try (FileWriter fileWriter = new FileWriter("watchlist.json")) {
+        fileWriter.write(jsonArray.toString());
+        fileWriter.flush();
+        System.out.println("Watchlist saved successfully");
+    } catch (IOException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(null,
+            "Error saving watchlist: " + e.getMessage(),
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
+    }
+}
 
     private void saveColumnSettings() {
         Properties properties = new Properties();
