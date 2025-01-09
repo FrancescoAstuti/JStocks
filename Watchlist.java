@@ -384,61 +384,80 @@ public void createAndShowGUI() {
             }
         }
     }
+    
     private void refreshWatchlist() {
-        System.out.println("Starting watchlist refresh...");
-        int rowCount = tableModel.getRowCount();
-        for (int i = 0; i < rowCount; i++) {
-            int modelRow = watchlistTable.convertRowIndexToModel(i);
-            String ticker = (String) tableModel.getValueAt(modelRow, 1);
-            try {
-                JSONObject stockData = fetchStockData(ticker);
-                JSONObject ratios = fetchStockRatios(ticker);
-                JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
+    System.out.println("Starting watchlist refresh...");
 
-                if (stockData != null) {
-                    double price = round(stockData.getDouble("price"), 2);
-                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                    double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
-                    double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
-                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
+    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+        @Override
+        protected Void doInBackground() {
+            int rowCount = tableModel.getRowCount();
+            for (int i = 0; i < rowCount; i++) {
+                int modelRow = watchlistTable.convertRowIndexToModel(i);
+                String ticker = (String) tableModel.getValueAt(modelRow, 1);
+                try {
+                    JSONObject stockData = fetchStockData(ticker);
+                    JSONObject ratios = fetchStockRatios(ticker);
+                    JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
 
-                    double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
-                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                    double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
-                    double pbAvg = fetchAveragePB(ticker);
-                    double peAvg = fetchAveragePE(ticker);
-                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
+                    if (stockData != null) {
+                        double price = round(stockData.getDouble("price"), 2);
+                        double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                        double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                        double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
+                        double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
+                        double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                        double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                        double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                        Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
 
-                    tableModel.setValueAt(price, modelRow, 2);
-                    tableModel.setValueAt(peTtm, modelRow, 3);
-                    tableModel.setValueAt(pbTtm, modelRow, 4);
-                    tableModel.setValueAt(dividendYield, modelRow, 5);
-                    tableModel.setValueAt(payoutRatio, modelRow, 6);
-                    tableModel.setValueAt(grahamNumber, modelRow, 7);
-                    tableModel.setValueAt(epsTtm, modelRow, 10);
-                    tableModel.setValueAt(roeTtm, modelRow, 11);
-                    tableModel.setValueAt(debtToEquity, modelRow, 16);
-                    tableModel.setValueAt(aScore, modelRow, 12);
-                    tableModel.setValueAt(epsCurrentYear, modelRow, 13);
-                    tableModel.setValueAt(epsNextYear, modelRow, 14);
-                    tableModel.setValueAt(epsYear3, modelRow, 15);
-                    tableModel.setValueAt(peg3Year, modelRow, 17);
+                        double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                        double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
+                        double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                        double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                        double pbAvg = fetchAveragePB(ticker);
+                        double peAvg = fetchAveragePE(ticker);
+                        double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
 
-                    System.out.println("Refreshed stock data: " + ticker);
+                        // Debugging information
+                        System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
+
+                        SwingUtilities.invokeLater(() -> {
+                            tableModel.setValueAt(price, modelRow, 2);
+                            tableModel.setValueAt(peTtm, modelRow, 3);
+                            tableModel.setValueAt(pbTtm, modelRow, 4);
+                            tableModel.setValueAt(dividendYield, modelRow, 5);
+                            tableModel.setValueAt(payoutRatio, modelRow, 6);
+                            tableModel.setValueAt(grahamNumber, modelRow, 7);
+                            tableModel.setValueAt(epsTtm, modelRow, 10);
+                            tableModel.setValueAt(roeTtm, modelRow, 11);
+                            tableModel.setValueAt(debtToEquity, modelRow, 16);
+                            tableModel.setValueAt(aScore, modelRow, 12);
+                            tableModel.setValueAt(epsCurrentYear, modelRow, 13);
+                            tableModel.setValueAt(epsNextYear, modelRow, 14);
+                            tableModel.setValueAt(epsYear3, modelRow, 15);
+                            tableModel.setValueAt(peg3Year, modelRow, 17);
+                        });
+
+                        System.out.println("Refreshed stock data: " + ticker);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.err.println("Error refreshing " + ticker + ": " + e.getMessage());
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("Error refreshing " + ticker + ": " + e.getMessage());
             }
+            return null;
         }
-        saveWatchlist();
-        System.out.println("Watchlist refresh completed");
-    }
+
+        @Override
+        protected void done() {
+            saveWatchlist();
+            System.out.println("Watchlist refresh completed");
+        }
+    };
+
+    worker.execute();
+}
 
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
@@ -602,11 +621,16 @@ public void createAndShowGUI() {
         return count > 0 ? round(sum / count, 2) : 0.0;
     }
 
-    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                                   double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
-        double debtToEquityTerm = debtToEquity.equals("n/a") ? 0 : (1 / (double) debtToEquity);
-        return (pbAvg / pbTtm) + (peAvg / peTtm) + (2 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
+   private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+    double debtToEquityTerm;
+    if (debtToEquity.equals("n/a") || (double) debtToEquity == 0) {
+        debtToEquityTerm = 0; // Set to 0 if debtToEquity is not available or zero
+    } else {
+        debtToEquityTerm = 1 / (double) debtToEquity; // Calculate inverse if available and non-zero
     }
+    return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
+}
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
