@@ -37,78 +37,91 @@ public class Watchlist {
         return columnNames;
     }
 
-    public void createAndShowGUI() {
-        JFrame frame = new JFrame("Watchlist");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(1000, 600);
+public void createAndShowGUI() {
+    JFrame frame = new JFrame("Watchlist");
+    frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Ensure custom handling of window close
+    frame.setSize(1000, 600);
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
+    JPanel mainPanel = new JPanel(new BorderLayout());
 
-        String[] dynamicColumnNames = getDynamicColumnNames();
-        tableModel = new DefaultTableModel(new Object[]{
-            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
-            "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-            "EPS TTM", "ROE TTM", "A-Score",
-            dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
-            "Debt to Equity", "PEG (3Y)"
-        }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 8 || column == 9;
+    String[] dynamicColumnNames = getDynamicColumnNames();
+    tableModel = new DefaultTableModel(new Object[]{
+        "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
+        "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
+        "EPS TTM", "ROE TTM", "A-Score",
+        dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
+        "Debt to Equity", "PEG (3Y)"
+    }, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return column == 8 || column == 9;
+        }
+
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            switch (columnIndex) {
+                case 2: case 3: case 4: case 5: case 6: case 7: 
+                case 8: case 9: case 10: case 11: case 12: case 13: 
+                case 14: case 15: case 16:
+                    return Double.class;
+                default:
+                    return String.class;
             }
+        }
+    };
 
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                switch (columnIndex) {
-                    case 2: case 3: case 4: case 5: case 6: case 7: 
-                    case 8: case 9: case 10: case 11: case 12: case 13: 
-                    case 14: case 15: case 16:
-                        return Double.class;
-                    default:
-                        return String.class;
-                }
-            }
-        };
+    watchlistTable = new JTable(tableModel);
 
-        watchlistTable = new JTable(tableModel);
+    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+    setupTableSorter(sorter);
+    watchlistTable.setRowSorter(sorter);
 
-        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-        setupTableSorter(sorter);
-        watchlistTable.setRowSorter(sorter);
+    watchlistTable.getTableHeader().setReorderingAllowed(true);
+    watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+    watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
 
-        watchlistTable.getTableHeader().setReorderingAllowed(true);
-        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+    JScrollPane scrollPane = new JScrollPane(watchlistTable);
+    mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(watchlistTable);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+    setupColumnControlPanel();
+    mainPanel.add(columnControlPanel, BorderLayout.WEST);
 
-        setupColumnControlPanel();
-        mainPanel.add(columnControlPanel, BorderLayout.WEST);
+    JPanel buttonPanel = new JPanel();
+    setupButtonPanel(buttonPanel);
+    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        JPanel buttonPanel = new JPanel();
-        setupButtonPanel(buttonPanel);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+    frame.add(mainPanel);
+    frame.setLocationRelativeTo(null);
 
-        frame.add(mainPanel);
-        frame.setLocationRelativeTo(null);
-
-        frame.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+    // Ensure the window closes properly and saves settings
+    frame.addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+            // Custom handling before closing
+            int confirm = JOptionPane.showOptionDialog(
+                frame,
+                "Are you sure you want to close this window?",
+                "Close Confirmation",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null, null, null);
+            if (confirm == JOptionPane.YES_OPTION) {
                 saveColumnSettings();
                 saveWatchlist();
+                frame.dispose();
             }
-        });
+        }
+    });
 
-        // Load settings and data AFTER the table is fully initialized
-        SwingUtilities.invokeLater(() -> {
-            loadColumnSettings();
-            loadWatchlist();
-        });
+    // Load settings and data AFTER the table is fully initialized
+    SwingUtilities.invokeLater(() -> {
+        loadColumnSettings();
+        loadWatchlist();
+    });
 
-        frame.setVisible(true);
-    }
+    frame.setVisible(true);
+}
+
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
         for (int i = 2; i <= 16; i++) {
             final int column = i;
@@ -196,11 +209,11 @@ public class Watchlist {
                         jsonObject.optDouble("peAvg", 0.0),
                         jsonObject.optDouble("epsTtm", 0.0),
                         jsonObject.optDouble("roeTtm", 0.0),
+                        jsonObject.opt("debtToEquity").equals("n/a") ? "n/a" : jsonObject.optDouble("debtToEquity", 0.0),
                         jsonObject.optDouble("aScore", 0.0),
                         jsonObject.optDouble("epsCurrentYear", 0.0),
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
-                        jsonObject.optDouble("debtToEquity", 0.0),
                         jsonObject.optDouble("peg3Year", 0.0)
                     };
                     tableModel.addRow(rowData);
@@ -216,7 +229,6 @@ public class Watchlist {
             }
         }
     }
-
     private void saveWatchlist() {
         JSONArray jsonArray = new JSONArray();
         File file = new File("watchlist.json");
@@ -236,11 +248,11 @@ public class Watchlist {
             jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
             jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
             jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
+            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
             jsonObject.put("aScore", tableModel.getValueAt(i, 12));
             jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
             jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
-            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16));
             jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
             jsonArray.put(jsonObject);
         }
@@ -343,7 +355,7 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    double debtToEquity = round(ratios.optDouble("debtToEquityTTM", 0.0), 2);
+                    Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
                     double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
@@ -392,7 +404,7 @@ public class Watchlist {
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    double debtToEquity = round(ratios.optDouble("debtToEquityTTM", 0.0), 2);
+                    Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
 
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
                     double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
@@ -410,11 +422,11 @@ public class Watchlist {
                     tableModel.setValueAt(grahamNumber, modelRow, 7);
                     tableModel.setValueAt(epsTtm, modelRow, 10);
                     tableModel.setValueAt(roeTtm, modelRow, 11);
+                    tableModel.setValueAt(debtToEquity, modelRow, 16);
                     tableModel.setValueAt(aScore, modelRow, 12);
                     tableModel.setValueAt(epsCurrentYear, modelRow, 13);
                     tableModel.setValueAt(epsNextYear, modelRow, 14);
                     tableModel.setValueAt(epsYear3, modelRow, 15);
-                    tableModel.setValueAt(debtToEquity, modelRow, 16);
                     tableModel.setValueAt(peg3Year, modelRow, 17);
 
                     System.out.println("Refreshed stock data: " + ticker);
@@ -591,8 +603,9 @@ public class Watchlist {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                                   double payoutRatio, double debtToEquity, double roe, double dividendYield) {
-        return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + (1 / debtToEquity) + 5 * roe + 20 * dividendYield;
+                                   double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+        double debtToEquityTerm = debtToEquity.equals("n/a") ? 0 : (1 / (double) debtToEquity);
+        return (pbAvg / pbTtm) + (peAvg / peTtm) + (2 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
     }
 
     public static void main(String[] args) {
@@ -607,6 +620,8 @@ public class Watchlist {
                 table, value, isSelected, hasFocus, row, column);
             if (value instanceof Double && (Double) value == 0.0) {
                 cell.setBackground(Color.YELLOW);
+            } else if (value.equals("n/a")) {
+                cell.setBackground(Color.LIGHT_GRAY);
             } else {
                 cell.setBackground(Color.WHITE);
             }
