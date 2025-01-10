@@ -178,7 +178,7 @@ import java.util.Calendar;
     private void loadWatchlist() {
     File file = new File("watchlist.json");
     System.out.println("Attempting to load watchlist from: " + file.getAbsolutePath());
-    
+
     if (file.exists()) {
         try (FileReader reader = new FileReader(file)) {
             Scanner scanner = new Scanner(reader);
@@ -196,6 +196,13 @@ import java.util.Calendar;
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
+                Object debtToEquity;
+                if (jsonObject.opt("debtToEquity") instanceof String && jsonObject.optString("debtToEquity").equals("n/a")) {
+                    debtToEquity = "n/a";
+                } else {
+                    debtToEquity = jsonObject.optDouble("debtToEquity", 0.0);
+                }
+
                 Object[] rowData = new Object[]{
                     jsonObject.optString("name", ""),
                     jsonObject.optString("ticker", "").toUpperCase(),
@@ -209,11 +216,11 @@ import java.util.Calendar;
                     jsonObject.optDouble("peAvg", 0.0),
                     jsonObject.optDouble("epsTtm", 0.0),
                     jsonObject.optDouble("roeTtm", 0.0),
-                    jsonObject.opt("debtToEquity").equals("n/a") ? "n/a" : jsonObject.optDouble("debtToEquity", 0.0),
                     jsonObject.optDouble("aScore", 0.0),
                     jsonObject.optDouble("epsCurrentYear", 0.0),
                     jsonObject.optDouble("epsNextYear", 0.0),
                     jsonObject.optDouble("epsYear3", 0.0),
+                    debtToEquity,
                     jsonObject.optDouble("peg3Year", 0.0)
                 };
                 tableModel.addRow(rowData);
@@ -252,16 +259,16 @@ import java.util.Calendar;
         jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
         jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
         jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
-        jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
-        jsonObject.put("aScore", tableModel.getValueAt(i, 12));
+        jsonObject.put("aScore", tableModel.getValueAt(i, 12)); // Corrected A-Score column
         jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
         jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
         jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
+        jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16)); // Corrected Debt to Equity column
         jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
         jsonArray.put(jsonObject);
     }
 
-    try (FileWriter fileWriter = new FileWriter("watchlist.json")) {
+    try (FileWriter fileWriter = new FileWriter(file)) {
         fileWriter.write(jsonArray.toString());
         fileWriter.flush();
         System.out.println("Watchlist saved successfully");
