@@ -1,27 +1,27 @@
 package afin.jstocks;
 
 import javax.swing.*;
+import javax.swing.event.RowSorterEvent;
+import javax.swing.event.RowSorterListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Comparator;
-import java.util.Properties;
-import java.util.Scanner;
+import java.util.*;
+import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Calendar;
 
-    public class Watchlist {
+public class Watchlist {
     private JTable watchlistTable;
     private DefaultTableModel tableModel;
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
@@ -38,95 +38,120 @@ import java.util.Calendar;
     }
 
     public void createAndShowGUI() {
-    JFrame frame = new JFrame("Watchlist");
-    frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Ensure custom handling of window close
-    frame.setSize(1000, 600);
+        JFrame frame = new JFrame("Watchlist");
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.setSize(1000, 600);
 
-    JPanel mainPanel = new JPanel(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
-    String[] dynamicColumnNames = getDynamicColumnNames();
-    tableModel = new DefaultTableModel(new Object[]{
-        "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield", 
-        "Payout Ratio", "Graham Number", "PB Avg", "PE Avg", 
-        "EPS TTM", "ROE TTM", "A-Score",
-        dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2], 
-        "Debt to Equity", "PEG (3Y)"
-    }, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return column == 8 || column == 9;
-        }
-
-        @Override
-        public Class<?> getColumnClass(int columnIndex) {
-            switch (columnIndex) {
-                case 2: case 3: case 4: case 5: case 6: case 7: 
-                case 8: case 9: case 10: case 11: case 12: case 13: 
-                case 14: case 15: case 16:
-                    return Double.class;
-                default:
-                    return String.class;
+        String[] dynamicColumnNames = getDynamicColumnNames();
+        tableModel = new DefaultTableModel(new Object[]{
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield",
+            "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
+            "EPS TTM", "ROE TTM", "A-Score",
+            dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
+            "Debt to Equity", "PEG (3Y)"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // Allow editing certain columns if desired (8, 9 for example).
+                // Return false if no columns should be editable.
+                return column == 8 || column == 9;
             }
-        }
-    };
 
-    watchlistTable = new JTable(tableModel);
-
-    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-    setupTableSorter(sorter);
-    watchlistTable.setRowSorter(sorter);
-
-    watchlistTable.getTableHeader().setReorderingAllowed(true);
-    watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-    watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
-
-    JScrollPane scrollPane = new JScrollPane(watchlistTable);
-    mainPanel.add(scrollPane, BorderLayout.CENTER);
-
-    setupColumnControlPanel();
-    mainPanel.add(columnControlPanel, BorderLayout.WEST);
-
-    JPanel buttonPanel = new JPanel();
-    setupButtonPanel(buttonPanel);
-    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-    frame.add(mainPanel);
-    frame.setLocationRelativeTo(null);
-
-    // Ensure the window closes properly and saves settings
-    frame.addWindowListener(new java.awt.event.WindowAdapter() {
-        @Override
-        public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-            // Custom handling before closing
-            int confirm = JOptionPane.showOptionDialog(
-                frame,
-                "Are you sure you want to close this window?",
-                "Close Confirmation",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null, null, null);
-            if (confirm == JOptionPane.YES_OPTION) {
-                saveColumnSettings();
-                saveWatchlist();
-                frame.dispose();
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                switch (columnIndex) {
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                    case 8:
+                    case 9:
+                    case 10:
+                    case 11:
+                    case 12:
+                    case 13:
+                    case 14:
+                    case 15:
+                    case 16:
+                        return Double.class;
+                    default:
+                        return String.class;
+                }
             }
-        }
-    });
+        };
 
-    // Load settings and data AFTER the table is fully initialized
-    SwingUtilities.invokeLater(() -> {
-        loadColumnSettings();
-        loadWatchlist();
-    });
+        watchlistTable = new JTable(tableModel);
 
-    frame.setVisible(true);
-}
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
+        setupTableSorter(sorter);
+        watchlistTable.setRowSorter(sorter);
+
+        watchlistTable.getTableHeader().setReorderingAllowed(true);
+        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
+        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+
+        JScrollPane scrollPane = new JScrollPane(watchlistTable);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        setupColumnControlPanel();
+        mainPanel.add(columnControlPanel, BorderLayout.WEST);
+
+        JPanel buttonPanel = new JPanel();
+        setupButtonPanel(buttonPanel);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        frame.add(mainPanel);
+        frame.setLocationRelativeTo(null);
+
+        // Handle window closing
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                int confirm = JOptionPane.showOptionDialog(
+                    frame,
+                    "Are you sure you want to close this window?",
+                    "Close Confirmation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null, null, null);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    saveColumnSettings();
+                    saveWatchlist();
+                    frame.dispose();
+                }
+            }
+        });
+
+        // After creating the UI, load settings asynchronously
+        SwingUtilities.invokeLater(() -> {
+            loadColumnSettings();
+            loadWatchlist();
+            loadSortOrder(sorter);
+        });
+
+        frame.setVisible(true);
+    }
 
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
+        // Set comparators for numeric columns if needed
         for (int i = 2; i <= 16; i++) {
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
         }
+
+        // Use RowSorterListener instead of propertyChangeListener
+        sorter.addRowSorterListener(new RowSorterListener() {
+            @Override
+            public void sorterChanged(RowSorterEvent e) {
+                if (e.getType() == RowSorterEvent.Type.SORT_ORDER_CHANGED) {
+                    saveSortOrder(sorter.getSortKeys());
+                }
+            }
+        });
     }
 
     private void setupColumnControlPanel() {
@@ -176,110 +201,109 @@ import java.util.Calendar;
     }
 
     private void loadWatchlist() {
-    File file = new File("watchlist.json");
-    System.out.println("Attempting to load watchlist from: " + file.getAbsolutePath());
+        File file = new File("watchlist.json");
+        System.out.println("Attempting to load watchlist from: " + file.getAbsolutePath());
 
-    if (file.exists()) {
-        try (FileReader reader = new FileReader(file)) {
-            Scanner scanner = new Scanner(reader);
-            String json = scanner.useDelimiter("\\Z").next();
-            scanner.close();
+        if (file.exists()) {
+            try (FileReader reader = new FileReader(file)) {
+                Scanner scanner = new Scanner(reader);
+                String json = scanner.useDelimiter("\\Z").next();
+                scanner.close();
 
-            System.out.println("Loading watchlist data...");
-            JSONArray jsonArray = new JSONArray(json);
-            System.out.println("Found " + jsonArray.length() + " stocks");
+                System.out.println("Loading watchlist data...");
+                JSONArray jsonArray = new JSONArray(json);
+                System.out.println("Found " + jsonArray.length() + " stocks");
 
-            // Clear existing table data
-            while (tableModel.getRowCount() > 0) {
-                tableModel.removeRow(0);
-            }
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                Object debtToEquity;
-                if (jsonObject.opt("debtToEquity") instanceof String && jsonObject.optString("debtToEquity").equals("n/a")) {
-                    debtToEquity = "n/a";
-                } else {
-                    debtToEquity = jsonObject.optDouble("debtToEquity", 0.0);
+                while (tableModel.getRowCount() > 0) {
+                    tableModel.removeRow(0);
                 }
 
-                Object[] rowData = new Object[]{
-                    jsonObject.optString("name", ""),
-                    jsonObject.optString("ticker", "").toUpperCase(),
-                    jsonObject.optDouble("price", 0.0),
-                    jsonObject.optDouble("peTtm", 0.0),
-                    jsonObject.optDouble("pbTtm", 0.0),
-                    jsonObject.optDouble("dividendYield", 0.0),
-                    jsonObject.optDouble("payoutRatio", 0.0),
-                    jsonObject.optDouble("grahamNumber", 0.0),
-                    jsonObject.optDouble("pbAvg", 0.0),
-                    jsonObject.optDouble("peAvg", 0.0),
-                    jsonObject.optDouble("epsTtm", 0.0),
-                    jsonObject.optDouble("roeTtm", 0.0),
-                    jsonObject.optDouble("aScore", 0.0),
-                    jsonObject.optDouble("epsCurrentYear", 0.0),
-                    jsonObject.optDouble("epsNextYear", 0.0),
-                    jsonObject.optDouble("epsYear3", 0.0),
-                    debtToEquity,
-                    jsonObject.optDouble("peg3Year", 0.0)
-                };
-                tableModel.addRow(rowData);
-                System.out.println("Added stock: " + jsonObject.optString("ticker", "") + " with price: " + jsonObject.optDouble("price", 0.0));
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    Object debtToEquity;
+                    if (jsonObject.opt("debtToEquity") instanceof String &&
+                        jsonObject.optString("debtToEquity").equals("n/a")) {
+                        debtToEquity = "n/a";
+                    } else {
+                        debtToEquity = jsonObject.optDouble("debtToEquity", 0.0);
+                    }
+
+                    Object[] rowData = new Object[]{
+                        jsonObject.optString("name", ""),
+                        jsonObject.optString("ticker", "").toUpperCase(),
+                        jsonObject.optDouble("price", 0.0),
+                        jsonObject.optDouble("peTtm", 0.0),
+                        jsonObject.optDouble("pbTtm", 0.0),
+                        jsonObject.optDouble("dividendYield", 0.0),
+                        jsonObject.optDouble("payoutRatio", 0.0),
+                        jsonObject.optDouble("grahamNumber", 0.0),
+                        jsonObject.optDouble("pbAvg", 0.0),
+                        jsonObject.optDouble("peAvg", 0.0),
+                        jsonObject.optDouble("epsTtm", 0.0),
+                        jsonObject.optDouble("roeTtm", 0.0),
+                        jsonObject.optDouble("aScore", 0.0),
+                        jsonObject.optDouble("epsCurrentYear", 0.0),
+                        jsonObject.optDouble("epsNextYear", 0.0),
+                        jsonObject.optDouble("epsYear3", 0.0),
+                        debtToEquity,
+                        jsonObject.optDouble("peg3Year", 0.0)
+                    };
+                    tableModel.addRow(rowData);
+                    System.out.println("Added stock: " + jsonObject.optString("ticker", "") +
+                                       " with price: " + jsonObject.optDouble("price", 0.0));
+                }
+                System.out.println("Watchlist loading completed");
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                    "Error loading watchlist: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
-            System.out.println("Watchlist loading completed");
+        } else {
+            System.out.println("Watchlist file does not exist.");
+        }
+    }
+
+    private void saveWatchlist() {
+        System.out.println("Saving watchlist...");
+        JSONArray jsonArray = new JSONArray();
+
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("name", tableModel.getValueAt(i, 0));
+            jsonObject.put("ticker", tableModel.getValueAt(i, 1));
+            jsonObject.put("price", tableModel.getValueAt(i, 2));
+            jsonObject.put("peTtm", tableModel.getValueAt(i, 3));
+            jsonObject.put("pbTtm", tableModel.getValueAt(i, 4));
+            jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
+            jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
+            jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
+            jsonObject.put("pbAvg", tableModel.getValueAt(i, 8));
+            jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
+            jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
+            jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
+            jsonObject.put("aScore", tableModel.getValueAt(i, 12));
+            jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
+            jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
+            jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
+            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
+            jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
+            jsonArray.put(jsonObject);
+        }
+
+        try (FileWriter fileWriter = new FileWriter("watchlist.json")) {
+            fileWriter.write(jsonArray.toString());
+            fileWriter.flush();
+            System.out.println("Watchlist saved successfully");
         } catch (IOException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
-                "Error loading watchlist: " + e.getMessage(),
+                "Error saving watchlist: " + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
         }
-    } else {
-        System.out.println("Watchlist file does not exist.");
     }
-}
-    
-    private void saveWatchlist() {
-    System.out.println("Saving watchlist...");
-    JSONArray jsonArray = new JSONArray();
-    File file = new File("watchlist.json");
-
-    // Add new data to the JSON array
-    for (int i = 0; i < tableModel.getRowCount(); i++) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("name", tableModel.getValueAt(i, 0));
-        jsonObject.put("ticker", tableModel.getValueAt(i, 1));
-        jsonObject.put("price", tableModel.getValueAt(i, 2));
-        jsonObject.put("peTtm", tableModel.getValueAt(i, 3));
-        jsonObject.put("pbTtm", tableModel.getValueAt(i, 4));
-        jsonObject.put("dividendYield", tableModel.getValueAt(i, 5));
-        jsonObject.put("payoutRatio", tableModel.getValueAt(i, 6));
-        jsonObject.put("grahamNumber", tableModel.getValueAt(i, 7));
-        jsonObject.put("pbAvg", tableModel.getValueAt(i, 8));
-        jsonObject.put("peAvg", tableModel.getValueAt(i, 9));
-        jsonObject.put("epsTtm", tableModel.getValueAt(i, 10));
-        jsonObject.put("roeTtm", tableModel.getValueAt(i, 11));
-        jsonObject.put("aScore", tableModel.getValueAt(i, 12)); // Corrected A-Score column
-        jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
-        jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
-        jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
-        jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16)); // Corrected Debt to Equity column
-        jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
-        jsonArray.put(jsonObject);
-    }
-
-    try (FileWriter fileWriter = new FileWriter(file)) {
-        fileWriter.write(jsonArray.toString());
-        fileWriter.flush();
-        System.out.println("Watchlist saved successfully");
-    } catch (IOException e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(null,
-            "Error saving watchlist: " + e.getMessage(),
-            "Error",
-            JOptionPane.ERROR_MESSAGE);
-    }
-}
 
     private void saveColumnSettings() {
         Properties properties = new Properties();
@@ -345,7 +369,58 @@ import java.util.Calendar;
             }
         }
     }
-    
+
+    private void saveSortOrder(java.util.List<? extends RowSorter.SortKey> sortKeys) {
+        Properties properties = new Properties();
+        for (int i = 0; i < sortKeys.size(); i++) {
+            RowSorter.SortKey sortKey = sortKeys.get(i);
+            properties.setProperty("sortKey" + i + ".column", String.valueOf(sortKey.getColumn()));
+            properties.setProperty("sortKey" + i + ".order", sortKey.getSortOrder().toString());
+        }
+
+        try (FileOutputStream out = new FileOutputStream("sort_order.properties")) {
+            properties.store(out, "Table Sort Order");
+            System.out.println("Sort order saved successfully");
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                "Error saving sort order: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadSortOrder(TableRowSorter<DefaultTableModel> sorter) {
+        Properties properties = new Properties();
+        File file = new File("sort_order.properties");
+
+        if (file.exists()) {
+            try (FileInputStream in = new FileInputStream(file)) {
+                properties.load(in);
+
+                List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+                for (int i = 0; ; i++) {
+                    String columnStr = properties.getProperty("sortKey" + i + ".column");
+                    String orderStr = properties.getProperty("sortKey" + i + ".order");
+                    if (columnStr == null || orderStr == null) break;
+
+                    int column = Integer.parseInt(columnStr);
+                    SortOrder order = SortOrder.valueOf(orderStr);
+                    sortKeys.add(new RowSorter.SortKey(column, order));
+                }
+
+                sorter.setSortKeys(sortKeys);
+                System.out.println("Sort order loaded successfully");
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                    "Error loading sort order: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void addStock() {
         String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
         if (ticker != null && !ticker.trim().isEmpty()) {
@@ -395,80 +470,79 @@ import java.util.Calendar;
             }
         }
     }
-    
+
     private void refreshWatchlist() {
-    System.out.println("Starting watchlist refresh...");
+        System.out.println("Starting watchlist refresh...");
 
-    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-        @Override
-        protected Void doInBackground() {
-            int rowCount = tableModel.getRowCount();
-            for (int i = 0; i < rowCount; i++) {
-                int modelRow = watchlistTable.convertRowIndexToModel(i);
-                String ticker = (String) tableModel.getValueAt(modelRow, 1);
-                try {
-                    JSONObject stockData = fetchStockData(ticker);
-                    JSONObject ratios = fetchStockRatios(ticker);
-                    JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                int rowCount = tableModel.getRowCount();
+                for (int i = 0; i < rowCount; i++) {
+                    int modelRow = watchlistTable.convertRowIndexToModel(i);
+                    String ticker = (String) tableModel.getValueAt(modelRow, 1);
+                    try {
+                        JSONObject stockData = fetchStockData(ticker);
+                        JSONObject ratios = fetchStockRatios(ticker);
+                        JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
 
-                    if (stockData != null) {
-                        double price = round(stockData.getDouble("price"), 2);
-                        double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                        double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                        double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
-                        double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
-                        double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                        double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                        double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                        Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
+                        if (stockData != null) {
+                            double price = round(stockData.getDouble("price"), 2);
+                            double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
+                            double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
+                            double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
+                            double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
+                            double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
+                            double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
+                            double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
+                            Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
 
-                        double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                        double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
-                        double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                        double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
-                        double pbAvg = fetchAveragePB(ticker);
-                        double peAvg = fetchAveragePE(ticker);
-                        double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
+                            double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
+                            double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
+                            double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                            double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                            double pbAvg = fetchAveragePB(ticker);
+                            double peAvg = fetchAveragePE(ticker);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
 
-                        // Debugging information
-                        System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
+                            System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
-                        SwingUtilities.invokeLater(() -> {
-                            tableModel.setValueAt(price, modelRow, 2);
-                            tableModel.setValueAt(peTtm, modelRow, 3);
-                            tableModel.setValueAt(pbTtm, modelRow, 4);
-                            tableModel.setValueAt(dividendYield, modelRow, 5);
-                            tableModel.setValueAt(payoutRatio, modelRow, 6);
-                            tableModel.setValueAt(grahamNumber, modelRow, 7);
-                            tableModel.setValueAt(epsTtm, modelRow, 10);
-                            tableModel.setValueAt(roeTtm, modelRow, 11);
-                            tableModel.setValueAt(debtToEquity, modelRow, 16);
-                            tableModel.setValueAt(aScore, modelRow, 12);
-                            tableModel.setValueAt(epsCurrentYear, modelRow, 13);
-                            tableModel.setValueAt(epsNextYear, modelRow, 14);
-                            tableModel.setValueAt(epsYear3, modelRow, 15);
-                            tableModel.setValueAt(peg3Year, modelRow, 17);
-                        });
+                            SwingUtilities.invokeLater(() -> {
+                                tableModel.setValueAt(price, modelRow, 2);
+                                tableModel.setValueAt(peTtm, modelRow, 3);
+                                tableModel.setValueAt(pbTtm, modelRow, 4);
+                                tableModel.setValueAt(dividendYield, modelRow, 5);
+                                tableModel.setValueAt(payoutRatio, modelRow, 6);
+                                tableModel.setValueAt(grahamNumber, modelRow, 7);
+                                tableModel.setValueAt(epsTtm, modelRow, 10);
+                                tableModel.setValueAt(roeTtm, modelRow, 11);
+                                tableModel.setValueAt(debtToEquity, modelRow, 16);
+                                tableModel.setValueAt(aScore, modelRow, 12);
+                                tableModel.setValueAt(epsCurrentYear, modelRow, 13);
+                                tableModel.setValueAt(epsNextYear, modelRow, 14);
+                                tableModel.setValueAt(epsYear3, modelRow, 15);
+                                tableModel.setValueAt(peg3Year, modelRow, 17);
+                            });
 
-                        System.out.println("Refreshed stock data: " + ticker);
+                            System.out.println("Refreshed stock data: " + ticker);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        System.err.println("Error refreshing " + ticker + ": " + e.getMessage());
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.err.println("Error refreshing " + ticker + ": " + e.getMessage());
                 }
+                return null;
             }
-            return null;
-        }
 
-        @Override
-        protected void done() {
-            saveWatchlist();
-            System.out.println("Watchlist refresh completed");
-        }
-    };
+            @Override
+            protected void done() {
+                saveWatchlist();
+                System.out.println("Watchlist refresh completed");
+            }
+        };
 
-    worker.execute();
-}
+        worker.execute();
+    }
 
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
@@ -632,16 +706,16 @@ import java.util.Calendar;
         return count > 0 ? round(sum / count, 2) : 0.0;
     }
 
-   private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
-    double debtToEquityTerm;
-    if (debtToEquity.equals("n/a") || (double) debtToEquity == 0) {
-        debtToEquityTerm = 0; // Set to 0 if debtToEquity is not available or zero
-    } else {
-        debtToEquityTerm = 1 / (double) debtToEquity; // Calculate inverse if available and non-zero
+    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
+                                   double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+        double debtToEquityTerm;
+        if (debtToEquity.equals("n/a") || (double) debtToEquity == 0) {
+            debtToEquityTerm = 0;
+        } else {
+            debtToEquityTerm = 1 / (double) debtToEquity;
+        }
+        return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
     }
-    return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
-}
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
@@ -650,12 +724,12 @@ import java.util.Calendar;
     static class CustomCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
             Component cell = super.getTableCellRendererComponent(
                 table, value, isSelected, hasFocus, row, column);
             if (value instanceof Double && (Double) value == 0.0) {
                 cell.setBackground(Color.YELLOW);
-            } else if (value.equals("n/a")) {
+            } else if ("n/a".equals(value)) {
                 cell.setBackground(Color.LIGHT_GRAY);
             } else {
                 cell.setBackground(Color.WHITE);
