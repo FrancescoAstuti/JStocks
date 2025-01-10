@@ -437,7 +437,7 @@ public class Watchlist {
                     double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
                     double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
                     double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
-                    double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
+                    double roeTtm = round(ratios.optDouble("roeTtm", 0.0), 2);
                     double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                     double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                     double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
@@ -495,11 +495,20 @@ public class Watchlist {
                             double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
                             double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                             double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                            Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
+                            Object debtToEquity = ratios.has("debtToEquityTTM") 
+                                ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) 
+                                : "n/a";
 
-                            double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                            double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
-                            double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                            double epsCurrentYear = epsEstimates != null 
+                                ? round(epsEstimates.optDouble("eps0", 0.0), 2) 
+                                : 0.0;
+                            double epsNextYear = epsEstimates != null 
+                                ? round(epsEstimates.optDouble("eps1", 0.0), 2) 
+                                : 0.0;
+                            double epsYear3 = epsEstimates != null 
+                                ? round(epsEstimates.optDouble("eps2", 0.0), 2) 
+                                : 0.0;
+
                             double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
@@ -508,20 +517,22 @@ public class Watchlist {
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
                             SwingUtilities.invokeLater(() -> {
-                                tableModel.setValueAt(price, modelRow, 2);
-                                tableModel.setValueAt(peTtm, modelRow, 3);
-                                tableModel.setValueAt(pbTtm, modelRow, 4);
-                                tableModel.setValueAt(dividendYield, modelRow, 5);
-                                tableModel.setValueAt(payoutRatio, modelRow, 6);
-                                tableModel.setValueAt(grahamNumber, modelRow, 7);
-                                tableModel.setValueAt(epsTtm, modelRow, 10);
-                                tableModel.setValueAt(roeTtm, modelRow, 11);
-                                tableModel.setValueAt(debtToEquity, modelRow, 16);
-                                tableModel.setValueAt(aScore, modelRow, 12);
-                                tableModel.setValueAt(epsCurrentYear, modelRow, 13);
-                                tableModel.setValueAt(epsNextYear, modelRow, 14);
-                                tableModel.setValueAt(epsYear3, modelRow, 15);
-                                tableModel.setValueAt(peg3Year, modelRow, 17);
+                                tableModel.setValueAt(price,         modelRow,  2);
+                                tableModel.setValueAt(peTtm,         modelRow,  3);
+                                tableModel.setValueAt(pbTtm,         modelRow,  4);
+                                tableModel.setValueAt(dividendYield, modelRow,  5);
+                                tableModel.setValueAt(payoutRatio,   modelRow,  6);
+                                tableModel.setValueAt(grahamNumber,  modelRow,  7);
+                                tableModel.setValueAt(pbAvg,         modelRow,  8); // PB Avg
+                                tableModel.setValueAt(peAvg,         modelRow,  9); // PE Avg
+                                tableModel.setValueAt(epsTtm,        modelRow, 10);
+                                tableModel.setValueAt(roeTtm,        modelRow, 11);
+                                tableModel.setValueAt(aScore,        modelRow, 12);
+                                tableModel.setValueAt(epsCurrentYear,modelRow, 13);
+                                tableModel.setValueAt(epsNextYear,   modelRow, 14);
+                                tableModel.setValueAt(epsYear3,      modelRow, 15);
+                                tableModel.setValueAt(debtToEquity,  modelRow, 16);
+                                tableModel.setValueAt(peg3Year,      modelRow, 17);
                             });
 
                             System.out.println("Refreshed stock data: " + ticker);
