@@ -725,7 +725,14 @@ public class Watchlist {
         } else {
             debtToEquityTerm = 1 / (double) debtToEquity;
         }
-        return (pbAvg / pbTtm) + (peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
+        double payoutRatioTerm;
+        if (payoutRatio == 0) {  // Since payoutRatio is already a double, just compare it directly
+            payoutRatioTerm = 0;
+        } else {
+            payoutRatioTerm = 1 / payoutRatio;
+    }
+        
+        return 2*(pbAvg / pbTtm) + 2*(peAvg / peTtm) + (payoutRatioTerm) + (debtToEquityTerm) + (5 * roe) + (10 * dividendYield);
     }
 
     public static void main(String[] args) {
