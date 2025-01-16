@@ -719,13 +719,25 @@ public class Watchlist {
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
                                    double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+        double peRatioTerm = 0;
+        
         double debtToEquityTerm;
+        
+        if (( peAvg/peTtm < 1)& ( peAvg/peTtm > 0.5)) {
+            peRatioTerm = 0.5;
+        }
+        if (( peAvg/peTtm > 1)& ( peAvg/peTtm < 1.5)) {
+            peRatioTerm = 1;
+        }
+        if (peAvg/peTtm > 1.5) {
+            peRatioTerm = 2;
+        }
         if (debtToEquity.equals("n/a") || (double) debtToEquity == 0) {
             debtToEquityTerm = 0;
         } else {
             debtToEquityTerm = 1 / (double) debtToEquity;
         }
-        return 2*(pbAvg / pbTtm) + 2*(peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
+        return peRatioTerm + 2*(pbAvg / pbTtm) + 0.1*(peAvg / peTtm) + (1 / payoutRatio) + debtToEquityTerm + 5 * roe + 20 * dividendYield;
     }
 
     public static void main(String[] args) {
