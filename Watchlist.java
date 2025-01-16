@@ -718,61 +718,52 @@ public class Watchlist {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                                   double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
-        double peRatioTerm = 0;
-        double pbRatioTerm = 0;
-        double payoutRatioTerm;
-        double debtToEquityTerm;
-        
-        // Conditions for peRatioTerm
-        if (peTtm == 0) {
-            peRatioTerm = 0;
-        }
-        if (peAvg/peTtm < 1) {
-            peRatioTerm = 0;
-        }
-        if (( peAvg/peTtm >= 1)&& ( peAvg/peTtm < 1.5)) {
-            peRatioTerm = 1;
-        }
-        if (peAvg/peTtm >= 1.5) {
-            peRatioTerm = 2;
-        }
-        
-         // Conditions for pbRatioTerm
-        if (( pbAvg/pbTtm < 1)||(pbTtm <=0)) {
-            pbRatioTerm = 0;
-        }
-        if (( pbAvg/pbTtm >= 1)&& ( pbAvg/pbTtm < 1.5)) {
-            pbRatioTerm = 1;
-        }
-        if (pbAvg/pbTtm >= 1.5) {
-            pbRatioTerm = 2;
-        }
-                
-        // Conditions for peyoutRatioTerm
-        if ((payoutRatio <= 0) || (payoutRatio >= 1)) {
-            payoutRatioTerm = 0;
-        }
-        if ((payoutRatio >= 0.5) && (payoutRatio < 1))  {
-            payoutRatioTerm = 1;
-        } else { 
-            payoutRatioTerm = 2;
-        }
-        
-        // Conditions for debtToEquityTerm
-        if (debtToEquity.equals("n/a") || (double) debtToEquity == 0 || (double) debtToEquity > 1) {
-             debtToEquityTerm = 0;
-        } else if ((double) debtToEquity >= 0.5 && (double) debtToEquity <= 1) {
-            debtToEquityTerm = 1; // Assuming you want to set a different value for this range
-        } else {
-                 debtToEquityTerm = 2; // Assuming default value for other cases
-        }
-            
-            
-            
-            return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + 0*roe + 0*dividendYield;
-        }
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+    double peRatioTerm = 0;
+    double pbRatioTerm = 0;
+    double payoutRatioTerm;
+    double debtToEquityTerm;
 
+    // Conditions for peRatioTerm
+    if (peTtm == 0) {
+        peRatioTerm = 0;
+    } else if (peAvg / peTtm < 1) {
+        peRatioTerm = 0;
+    } else if (peAvg / peTtm >= 1 && peAvg / peTtm < 1.5) {
+        peRatioTerm = 1;
+    } else if (peAvg / peTtm >= 1.5) {
+        peRatioTerm = 2;
+    }
+
+    // Conditions for pbRatioTerm
+    if (pbTtm <= 0 || pbAvg / pbTtm < 1) {
+        pbRatioTerm = 0;
+    } else if (pbAvg / pbTtm >= 1 && pbAvg / pbTtm < 1.5) {
+        pbRatioTerm = 1;
+    } else if (pbAvg / pbTtm >= 1.5) {
+        pbRatioTerm = 2;
+    }
+
+    // Conditions for payoutRatioTerm
+    if (payoutRatio <= 0 || payoutRatio >= 1) {
+        payoutRatioTerm = 0;
+    } else if (payoutRatio >= 0.5 && payoutRatio < 1) {
+        payoutRatioTerm = 1;
+    } else {
+        payoutRatioTerm = 2;
+    }
+
+    // Conditions for debtToEquityTerm
+    if (debtToEquity.equals("n/a") || (double) debtToEquity == 0 || (double) debtToEquity > 1) {
+        debtToEquityTerm = 0;
+    } else if ((double) debtToEquity >= 0.5 && (double) debtToEquity <= 1) {
+        debtToEquityTerm = 1;
+    } else {
+        debtToEquityTerm = 2;
+    }
+
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + 0 * roe + 0 * dividendYield;
+}
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
