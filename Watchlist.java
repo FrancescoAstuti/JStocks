@@ -721,8 +721,10 @@ public class Watchlist {
                                double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
-    double payoutRatioTerm;
-    double debtToEquityTerm;
+    double payoutRatioTerm = 0;
+    double dividendYieldTerm = 0;
+    double debtToEquityTerm = 0;
+    double roeTerm = 0;
 
     // Conditions for peRatioTerm
     if (peTtm == 0) {
@@ -744,6 +746,15 @@ public class Watchlist {
         pbRatioTerm = 2;
     }
 
+    // Conditions for dividendYielsTerm
+    if (dividendYield < 0.03) {
+        dividendYieldTerm = 0;
+    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.05)){
+        dividendYieldTerm = 1;
+    } else if (dividendYield >= 0.05) {
+        dividendYieldTerm = 2;
+    }
+    
     // Conditions for payoutRatioTerm
     if (payoutRatio <= 0 || payoutRatio >= 1) {
         payoutRatioTerm = 0;
@@ -761,8 +772,19 @@ public class Watchlist {
     } else {
         debtToEquityTerm = 2;
     }
+    
+    // Conditions for roe
+    if (roe <= 0) {
+        roeTerm = -1;
+    } else if (roe > 0 && roe < 0.1) {
+        roeTerm = 0;
+    } else if (roe >= 0.1 && roe < 0.2) {
+        roeTerm = 1;
+    } else if (roe >= 0.2) {
+        roeTerm = 2;
+    }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + 0 * roe + 0 * dividendYield;
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm;
 }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
