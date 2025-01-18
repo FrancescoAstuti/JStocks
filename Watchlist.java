@@ -50,7 +50,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "PEG (3Y)"
+            "Debt to Equity", "PEG TTM"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -246,7 +246,7 @@ public class Watchlist {
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
                         debtToEquity,
-                        jsonObject.optDouble("peg3Year", 0.0)
+                        jsonObject.optDouble("pegTTM", 0.0)
                     };
                     tableModel.addRow(rowData);
                     System.out.println("Added stock: " + jsonObject.optString("ticker", "") +
@@ -288,7 +288,7 @@ public class Watchlist {
             jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
             jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
-            jsonObject.put("peg3Year", tableModel.getValueAt(i, 17));
+            jsonObject.put("pegTTM", tableModel.getValueAt(i, 17));
             jsonArray.put(jsonObject);
         }
 
@@ -449,13 +449,13 @@ public class Watchlist {
 
                     double pbAvg = fetchAveragePB(ticker);
                     double peAvg = fetchAveragePE(ticker);
-                    double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
-                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
+                    double pegTtm = calculatePEGTTM(peTtm,epsCurrentYear, epsTtm);
+                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm);
 
                     tableModel.addRow(new Object[]{
                         name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
                         grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, peg3Year
+                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, pegTtm
                     });
 
                     saveWatchlist();
@@ -470,7 +470,14 @@ public class Watchlist {
             }
         }
     }
-
+    private double calculatePEGTTM(double peTtm, double epsCurrentYear, double epsTtm) {
+        if (epsCurrentYear == 0) return 0;
+        else {
+        double growthRate = 100 * (epsCurrentYear - epsTtm) / epsTtm;
+        
+        return round(peTtm/growthRate, 2);
+        }
+    }
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
 
@@ -509,10 +516,10 @@ public class Watchlist {
                                 ? round(epsEstimates.optDouble("eps2", 0.0), 2) 
                                 : 0.0;
 
-                            double peg3Year = calculatePEG3Year(epsCurrentYear, epsYear3);
+                            double pegTtm = calculatePEGTTM(peTtm, epsCurrentYear,epsTtm);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm);
 
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -532,7 +539,7 @@ public class Watchlist {
                                 tableModel.setValueAt(epsNextYear,   modelRow, 14);
                                 tableModel.setValueAt(epsYear3,      modelRow, 15);
                                 tableModel.setValueAt(debtToEquity,  modelRow, 16);
-                                tableModel.setValueAt(peg3Year,      modelRow, 17);
+                                tableModel.setValueAt(pegTtm,      modelRow, 17);
                             });
 
                             System.out.println("Refreshed stock data: " + ticker);
@@ -555,6 +562,7 @@ public class Watchlist {
         worker.execute();
     }
 
+      
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
@@ -566,11 +574,7 @@ public class Watchlist {
         }
     }
 
-    private double calculatePEG3Year(double epsCurrentYear, double epsYear3) {
-        if (epsCurrentYear == 0) return 0;
-        double growthRate = 100 * (epsYear3 - epsCurrentYear) / epsCurrentYear;
-        return round(growthRate, 2);
-    }
+    
 
     private double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
@@ -718,13 +722,14 @@ public class Watchlist {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield) {
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double pegTtm) {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
     double payoutRatioTerm = 0;
     double dividendYieldTerm = 0;
     double debtToEquityTerm = 0;
     double roeTerm = 0;
+    double pegTtmTerm =0;
 
     // Conditions for peRatioTerm
     if (peTtm == 0) {
@@ -783,8 +788,19 @@ public class Watchlist {
     } else if (roe >= 0.2) {
         roeTerm = 2;
     }
+    
+    // Conditions for pegTtm
+    if (pegTtm <= 0) {
+        pegTtmTerm = 0;
+    } else if (pegTtm > 0 && pegTtm < 0.5) {
+        pegTtmTerm = 2;
+    } else if (pegTtm >= 0.5 && pegTtm <= 1)  {
+        pegTtmTerm = 1;
+    } else if (pegTtm > 1) {
+        pegTtmTerm = 0;
+    }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm;
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + pegTtmTerm;
 }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
