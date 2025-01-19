@@ -50,7 +50,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "PEG TTM"
+            "Debt to Equity", "PEG TTM", "Current Ratio", "Quick Ratio"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -77,6 +77,8 @@ public class Watchlist {
                     case 14:
                     case 15:
                     case 16:
+                    case 17:
+                    case 18:
                         return Double.class;
                     default:
                         return String.class;
@@ -246,7 +248,11 @@ public class Watchlist {
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
                         debtToEquity,
-                        jsonObject.optDouble("pegTTM", 0.0)
+                        jsonObject.optDouble("pegTTM", 0.0),
+                            
+                        jsonObject.optDouble("currentRatio", 0.0),
+                        jsonObject.optDouble("quickRatio",   0.0),
+                        
                     };
                     tableModel.addRow(rowData);
                     System.out.println("Added stock: " + jsonObject.optString("ticker", "") +
@@ -289,6 +295,8 @@ public class Watchlist {
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
             jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
             jsonObject.put("pegTTM", tableModel.getValueAt(i, 17));
+            jsonObject.put("currentRatio", tableModel.getValueAt(i, 18));
+            jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
             jsonArray.put(jsonObject);
         }
 
@@ -515,7 +523,14 @@ public class Watchlist {
                             double epsYear3 = epsEstimates != null 
                                 ? round(epsEstimates.optDouble("eps2", 0.0), 2) 
                                 : 0.0;
-
+                            double currentRatio = ratios != null
+                                ? round(ratios.optDouble("currentRatioTTM", 0.0), 2)
+                                : 0.0;
+                            double quickRatio = ratios != null
+                                ? round(ratios.optDouble("quickRatioTTM", 0.0), 2)
+                                : 0.0;
+                            
+                                                       
                             double pegTtm = calculatePEGTTM(peTtm, epsCurrentYear,epsTtm);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
@@ -540,6 +555,8 @@ public class Watchlist {
                                 tableModel.setValueAt(epsYear3,      modelRow, 15);
                                 tableModel.setValueAt(debtToEquity,  modelRow, 16);
                                 tableModel.setValueAt(pegTtm,      modelRow, 17);
+                                tableModel.setValueAt(currentRatio, modelRow, 18); // Index of the new "Current Ratio" column
+                                tableModel.setValueAt(quickRatio,  modelRow, 19); // Index of the new "Quick Ratio" column
                             });
 
                             System.out.println("Refreshed stock data: " + ticker);
@@ -616,34 +633,67 @@ public class Watchlist {
     }
 
     private JSONObject fetchStockRatios(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics-ttm/%s?apikey=%s", ticker, API_KEY);
-        HttpURLConnection connection = null;
-
-        try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                Scanner scanner = new Scanner(url.openStream());
-                String response = scanner.useDelimiter("\\Z").next();
-                scanner.close();
-
-                JSONArray data = new JSONArray(response);
-                if (data.length() > 0) {
-                    return data.getJSONObject(0);
+    // Create a combined JSONObject to store results from both endpoints
+    JSONObject combinedRatios = new JSONObject();
+    
+    // First endpoint (key-metrics-ttm)
+    String urlMetrics = String.format("https://financialmodelingprep.com/api/v3/key-metrics-ttm/%s?apikey=%s", ticker, API_KEY);
+    // Second endpoint (ratios-ttm)
+    String urlRatios = String.format("https://financialmodelingprep.com/api/v3/ratios-ttm/%s?apikey=%s", ticker, API_KEY);
+    
+    try {
+        // Fetch data from first endpoint (key-metrics-ttm)
+        URL url1 = new URL(urlMetrics);
+        HttpURLConnection conn1 = (HttpURLConnection) url1.openConnection();
+        conn1.setRequestMethod("GET");
+        
+        if (conn1.getResponseCode() == 200) {
+            Scanner scanner1 = new Scanner(url1.openStream());
+            String response1 = scanner1.useDelimiter("\\Z").next();
+            scanner1.close();
+            
+            JSONArray data1 = new JSONArray(response1);
+            if (data1.length() > 0) {
+                // Copy all properties from first endpoint
+                JSONObject metricsData = data1.getJSONObject(0);
+                for (String key : metricsData.keySet()) {
+                    combinedRatios.put(key, metricsData.get(key));
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
+        }
+        conn1.disconnect();
+        
+        // Fetch data from second endpoint (ratios-ttm)
+        URL url2 = new URL(urlRatios);
+        HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
+        conn2.setRequestMethod("GET");
+        
+        if (conn2.getResponseCode() == 200) {
+            Scanner scanner2 = new Scanner(url2.openStream());
+            String response2 = scanner2.useDelimiter("\\Z").next();
+            scanner2.close();
+            
+            JSONArray data2 = new JSONArray(response2);
+            if (data2.length() > 0) {
+                // Copy all properties from second endpoint
+                JSONObject ratiosData = data2.getJSONObject(0);
+                for (String key : ratiosData.keySet()) {
+                    // Only overwrite if the value doesn't exist or is 0
+                    if (!combinedRatios.has(key) || combinedRatios.getDouble(key) == 0) {
+                        combinedRatios.put(key, ratiosData.get(key));
+                    }
+                }
             }
         }
+        conn2.disconnect();
+        
+        return combinedRatios;
+        
+    } catch (IOException e) {
+        e.printStackTrace();
         return null;
     }
+}
 
     private double fetchAveragePB(String ticker) {
         String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
