@@ -79,6 +79,7 @@ public class Watchlist {
                     case 16:
                     case 17:
                     case 18:
+                    case 19:
                         return Double.class;
                     default:
                         return String.class;
@@ -454,16 +455,18 @@ public class Watchlist {
                     double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
                     double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
                     double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
+                    double currentRatio = ratios != null ? round(ratios.optDouble("currentRatioTTM", 0.0), 2) : 0.0;
+                    double quickRatio = ratios != null ? round(ratios.optDouble("quickRatioTTM", 0.0), 2) : 0.0;
 
                     double pbAvg = fetchAveragePB(ticker);
                     double peAvg = fetchAveragePE(ticker);
                     double pegTtm = calculatePEGTTM(peTtm,epsCurrentYear, epsTtm);
-                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm);
+                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm, currentRatio, quickRatio);
 
                     tableModel.addRow(new Object[]{
                         name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
                         grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, pegTtm
+                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, pegTtm, currentRatio, quickRatio    // Add this
                     });
 
                     saveWatchlist();
@@ -534,8 +537,8 @@ public class Watchlist {
                             double pegTtm = calculatePEGTTM(peTtm, epsCurrentYear,epsTtm);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm);
-
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm, currentRatio, quickRatio);
+                            
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
                             SwingUtilities.invokeLater(() -> {
@@ -772,7 +775,7 @@ public class Watchlist {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double pegTtm) {
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double pegTtm, double currentRatio, double quickRatio) {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
     double payoutRatioTerm = 0;
@@ -780,38 +783,40 @@ public class Watchlist {
     double debtToEquityTerm = 0;
     double roeTerm = 0;
     double pegTtmTerm =0;
+    double currentRatioTerm = 0;
+    double quickRatioTerm = 0;
 
     // Conditions for peRatioTerm
     if (peTtm == 0) {
         peRatioTerm = 0;
     } else if (peAvg / peTtm < 1) {
         peRatioTerm = 0;
-    } else if (peAvg / peTtm >= 1 && peAvg / peTtm < 1.5) {
+    } else if (peAvg / peTtm >= 1 && peAvg / peTtm < 2) {
         peRatioTerm = 1;
-    } else if (peAvg / peTtm >= 1.5) {
+    } else if (peAvg / peTtm >= 2) {
         peRatioTerm = 2;
     }
 
     // Conditions for pbRatioTerm
     if (pbTtm <= 0 || pbAvg / pbTtm < 1) {
         pbRatioTerm = 0;
-    } else if (pbAvg / pbTtm >= 1 && pbAvg / pbTtm < 1.5) {
+    } else if (pbAvg / pbTtm >= 1 && pbAvg / pbTtm < 2) {
         pbRatioTerm = 1;
-    } else if (pbAvg / pbTtm >= 1.5) {
+    } else if (pbAvg / pbTtm >= 2) {
         pbRatioTerm = 2;
     }
 
     // Conditions for dividendYielsTerm
     if (dividendYield < 0.03) {
         dividendYieldTerm = 0;
-    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.05)){
+    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.06)){
         dividendYieldTerm = 1;
-    } else if (dividendYield >= 0.05) {
+    } else if (dividendYield >= 0.06) {
         dividendYieldTerm = 2;
     }
     
     // Conditions for payoutRatioTerm
-    if (payoutRatio <= 0 || payoutRatio >= 1) {
+    if (payoutRatio <= 0 || payoutRatio >= 1 || dividendYield < 0.03 ) {
         payoutRatioTerm = 0;
     } else if (payoutRatio >= 0.5 && payoutRatio < 1) {
         payoutRatioTerm = 1;
@@ -849,8 +854,26 @@ public class Watchlist {
     } else if (pegTtm > 1) {
         pegTtmTerm = 0;
     }
+    
+    // Conditions for current ratio
+    if (currentRatio < 1) {
+        currentRatioTerm = 0;
+    } else if (currentRatio >= 1 && currentRatio < 2) {
+        currentRatioTerm = 1;
+    } else if (currentRatio >= 2) {
+        currentRatioTerm  = 2;
+    }
+    
+    // Conditions for quick ratio
+    if (quickRatio < 1) {
+        quickRatioTerm = 0;
+    } else if (quickRatio >= 1 && quickRatio < 2) {
+        quickRatioTerm = 1;
+    } else if (quickRatio >= 2) {
+        quickRatioTerm  = 2;
+    }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + pegTtmTerm;
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + pegTtmTerm + currentRatioTerm + quickRatioTerm;
 }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
