@@ -50,7 +50,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "PEG TTM", "Current Ratio", "Quick Ratio"
+            "Debt to Equity", "PEG TTM", "Current Ratio", "Quick Ratio", "PEG 1"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -80,6 +80,7 @@ public class Watchlist {
                     case 17:
                     case 18:
                     case 19:
+                    case 20:
                         return Double.class;
                     default:
                         return String.class;
@@ -253,6 +254,7 @@ public class Watchlist {
                             
                         jsonObject.optDouble("currentRatio", 0.0),
                         jsonObject.optDouble("quickRatio",   0.0),
+                        jsonObject.optDouble("peg1", 0.0)  // Add this
                         
                     };
                     tableModel.addRow(rowData);
@@ -298,6 +300,7 @@ public class Watchlist {
             jsonObject.put("pegTTM", tableModel.getValueAt(i, 17));
             jsonObject.put("currentRatio", tableModel.getValueAt(i, 18));
             jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
+             jsonObject.put("peg1", tableModel.getValueAt(i, 20));
             jsonArray.put(jsonObject);
         }
 
@@ -431,64 +434,57 @@ public class Watchlist {
     }
 
     private void addStock() {
-        String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
-        if (ticker != null && !ticker.trim().isEmpty()) {
-            ticker = ticker.toUpperCase();
-            try {
-                JSONObject stockData = fetchStockData(ticker);
-                JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
-
-                if (stockData != null) {
-                    String name = stockData.getString("name");
-                    double price = round(stockData.getDouble("price"), 2);
-                    JSONObject ratios = fetchStockRatios(ticker);
-
-                    double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
-                    double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
-                    double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
-                    double roeTtm = round(ratios.optDouble("roeTtm", 0.0), 2);
-                    double dividendYield = round(ratios.optDouble("dividendYieldTTM", 0.0), 2);
-                    double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                    double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                    Object debtToEquity = ratios.has("debtToEquityTTM") ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) : "n/a";
-
-                    double epsCurrentYear = epsEstimates != null ? round(epsEstimates.optDouble("eps0", 0.0), 2) : 0.0;
-                    double epsNextYear = epsEstimates != null ? round(epsEstimates.optDouble("eps1", 0.0), 2) : 0.0;
-                    double epsYear3 = epsEstimates != null ? round(epsEstimates.optDouble("eps2", 0.0), 2) : 0.0;
-                    double currentRatio = ratios != null ? round(ratios.optDouble("currentRatioTTM", 0.0), 2) : 0.0;
-                    double quickRatio = ratios != null ? round(ratios.optDouble("quickRatioTTM", 0.0), 2) : 0.0;
-
-                    double pbAvg = fetchAveragePB(ticker);
-                    double peAvg = fetchAveragePE(ticker);
-                    double pegTtm = calculatePEGTTM(peTtm,epsCurrentYear, epsTtm);
-                    double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm, currentRatio, quickRatio);
-
-                    tableModel.addRow(new Object[]{
-                        name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio,
-                        grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                        epsCurrentYear, epsNextYear, epsYear3, debtToEquity, pegTtm, currentRatio, quickRatio    // Add this
-                    });
-
-                    saveWatchlist();
-                    System.out.println("Stock added successfully: " + ticker);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
+    if (ticker != null && !ticker.trim().isEmpty()) {
+        ticker = ticker.toUpperCase();
+        try {
+            JSONObject stockData = fetchStockData(ticker);
+            
+            if (stockData == null) {
                 JOptionPane.showMessageDialog(null,
-                    "Error adding stock: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Symbol '" + ticker + "' not found.",
+                    "Symbol Not Found",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
             }
+
+            JSONObject ratios = fetchStockRatios(ticker);
+            if (ratios == null) {
+                JOptionPane.showMessageDialog(null,
+                    "Financial data not available for '" + ticker + "'.",
+                    "Data Not Available",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Continue only if we have valid data
+            String name = stockData.getString("name");
+            // ... rest of your existing code ...
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error processing '" + ticker + "': " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
+}
     private double calculatePEGTTM(double peTtm, double epsCurrentYear, double epsTtm) {
-        if (epsCurrentYear == 0) return 0;
+        if (epsTtm <= 0) return 0;
         else {
         double growthRate = 100 * (epsCurrentYear - epsTtm) / epsTtm;
         
         return round(peTtm/growthRate, 2);
         }
     }
+    private double calculatePEG1(double peTtm, double epsTtm, double epsNextYear) {
+    if (epsTtm <= 0) return 0;
+    
+    double growthRate = 100 * (epsNextYear - epsTtm) / epsTtm;
+    if (growthRate == 0) return 0;
+    
+    return round(peTtm/growthRate, 2);
+}
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
 
@@ -531,10 +527,10 @@ public class Watchlist {
                                 : 0.0;
                             double quickRatio = ratios != null
                                 ? round(ratios.optDouble("quickRatioTTM", 0.0), 2)
-                                : 0.0;
-                            
-                                                       
+                                : 0.0;                                           
+                                                      
                             double pegTtm = calculatePEGTTM(peTtm, epsCurrentYear,epsTtm);
+                            double peg1 = calculatePEG1(peTtm, epsTtm, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
                             double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, pegTtm, currentRatio, quickRatio);
@@ -560,6 +556,8 @@ public class Watchlist {
                                 tableModel.setValueAt(pegTtm,      modelRow, 17);
                                 tableModel.setValueAt(currentRatio, modelRow, 18); // Index of the new "Current Ratio" column
                                 tableModel.setValueAt(quickRatio,  modelRow, 19); // Index of the new "Quick Ratio" column
+                                tableModel.setValueAt(peg1, modelRow, 20);
+                                
                             });
 
                             System.out.println("Refreshed stock data: " + ticker);
@@ -603,37 +601,39 @@ public class Watchlist {
         return bd.doubleValue();
     }
 
-    private JSONObject fetchStockData(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/quote/%s?apikey=%s", ticker, API_KEY);
-        HttpURLConnection connection = null;
+private JSONObject fetchStockData(String ticker) {
+    String urlString = String.format("https://financialmodelingprep.com/api/v3/quote/%s?apikey=%s", ticker, API_KEY);
+    HttpURLConnection connection = null;
 
-        try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+    try {
+        URL url = new URL(urlString);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                Scanner scanner = new Scanner(url.openStream());
-                String response = scanner.useDelimiter("\\Z").next();
-                scanner.close();
+        int responseCode = connection.getResponseCode();
+        if (responseCode == 200) {
+            Scanner scanner = new Scanner(url.openStream());
+            String response = scanner.useDelimiter("\\Z").next();
+            scanner.close();
 
-                JSONArray data = new JSONArray(response);
-                if (data.length() > 0) {
-                    return data.getJSONObject(0);
-                }
+            JSONArray data = new JSONArray(response);
+            if (data.length() > 0) {
+                return data.getJSONObject(0);
             } else {
-                throw new IOException("Failed to get valid response from API. Response Code: " + responseCode);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
+                return null;
             }
         }
         return null;
+    } catch (Exception e) {
+        return null;
+    } finally {
+        if (connection != null) {
+            connection.disconnect();
+        }
     }
+}
 
     private JSONObject fetchStockRatios(String ticker) {
     // Create a combined JSONObject to store results from both endpoints
@@ -791,27 +791,27 @@ public class Watchlist {
         peRatioTerm = 0;
     } else if (peAvg / peTtm < 1) {
         peRatioTerm = 0;
-    } else if (peAvg / peTtm >= 1 && peAvg / peTtm < 2) {
+    } else if (peAvg / peTtm >= 1 && peAvg / peTtm < 1.5) {
         peRatioTerm = 1;
-    } else if (peAvg / peTtm >= 2) {
+    } else if (peAvg / peTtm >= 1.5) {
         peRatioTerm = 2;
     }
 
     // Conditions for pbRatioTerm
     if (pbTtm <= 0 || pbAvg / pbTtm < 1) {
         pbRatioTerm = 0;
-    } else if (pbAvg / pbTtm >= 1 && pbAvg / pbTtm < 2) {
+    } else if (pbAvg / pbTtm >= 1 && pbAvg / pbTtm < 1.5) {
         pbRatioTerm = 1;
-    } else if (pbAvg / pbTtm >= 2) {
+    } else if (pbAvg / pbTtm >= 1.5) {
         pbRatioTerm = 2;
     }
 
     // Conditions for dividendYielsTerm
     if (dividendYield < 0.03) {
         dividendYieldTerm = 0;
-    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.06)){
+    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.05)){
         dividendYieldTerm = 1;
-    } else if (dividendYield >= 0.06) {
+    } else if (dividendYield >= 0.05) {
         dividendYieldTerm = 2;
     }
     
