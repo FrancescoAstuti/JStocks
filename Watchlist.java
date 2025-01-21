@@ -50,7 +50,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "PEG 1"
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -139,6 +139,8 @@ public class Watchlist {
 
         frame.setVisible(true);
     }
+    
+    
 
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
         // Set comparators for numeric columns if needed
@@ -175,14 +177,17 @@ public class Watchlist {
         JButton addButton = new JButton("Add Stock");
         JButton deleteButton = new JButton("Delete Stock");
         JButton refreshButton = new JButton("Refresh");
+        JButton importButton = new JButton("Import From FMP");
 
         addButton.addActionListener(e -> addStock());
         deleteButton.addActionListener(e -> deleteStock());
         refreshButton.addActionListener(e -> refreshWatchlist());
-
+        importButton.addActionListener(e -> importTickersFromFMP());
+        
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
+         buttonPanel.add(importButton);
     }
 
     private void toggleColumnVisibility(String columnName, boolean visible) {
@@ -251,10 +256,10 @@ public class Watchlist {
                         jsonObject.optDouble("epsYear3", 0.0),
                         debtToEquity,
                         jsonObject.optDouble("epsGrowth1", 0.0),
-                            
                         jsonObject.optDouble("currentRatio", 0.0),
                         jsonObject.optDouble("quickRatio",   0.0),
-                        jsonObject.optDouble("peg1", 0.0)  // Add this
+                        jsonObject.optDouble("epsGrowth2", 0.0), 
+                        
                         
                     };
                     tableModel.addRow(rowData);
@@ -300,7 +305,7 @@ public class Watchlist {
             jsonObject.put("epsGrowth1", tableModel.getValueAt(i, 17));
             jsonObject.put("currentRatio", tableModel.getValueAt(i, 18));
             jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
-             jsonObject.put("peg1", tableModel.getValueAt(i, 20));
+             jsonObject.put("epsGrowth2", tableModel.getValueAt(i, 20));
             jsonArray.put(jsonObject);
         }
 
@@ -482,12 +487,12 @@ public class Watchlist {
             double epsGrowth1 = calculateEpsGrowth1(epsCurrentYear, epsTtm);
             double currentRatio = ratios.optDouble("currentRatioTTM", 0.0);
             double quickRatio = ratios.optDouble("quickRatioTTM", 0.0);
-            double peg1 = calculatePEG1(peTtm, epsTtm, epsNextYear);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, currentRatio, quickRatio);
+            double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, peg1
+                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2
             };
 
             tableModel.addRow(rowData);
@@ -513,13 +518,11 @@ public class Watchlist {
         return round(growthRate1, 2);
         }
     }
-    private double calculatePEG1(double peTtm, double epsTtm, double epsNextYear) {
-    if (epsTtm <= 0) return 0;
-    
-    double growthRate = 100 * (epsNextYear - epsTtm) / epsTtm;
-    if (growthRate == 0) return 0;
-    
-    return round(peTtm/growthRate, 2);
+    private double calculateEpsGrowth2(double epsCurrentYear, double epsNextYear) {
+    if (epsCurrentYear == 0) return 0;
+    double growthRate2 = 100 * (epsNextYear - epsCurrentYear) / epsCurrentYear;
+   
+    return round(growthRate2, 2);
 }
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
@@ -566,10 +569,10 @@ public class Watchlist {
                                 : 0.0;                                           
                                                       
                             double epsGrowth1 = calculateEpsGrowth1(epsCurrentYear,epsTtm);
-                            double peg1 = calculatePEG1(peTtm, epsTtm, epsNextYear);
+                            double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, currentRatio, quickRatio);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, currentRatio, quickRatio);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -592,7 +595,7 @@ public class Watchlist {
                                 tableModel.setValueAt(epsGrowth1,      modelRow, 17);
                                 tableModel.setValueAt(currentRatio, modelRow, 18); // Index of the new "Current Ratio" column
                                 tableModel.setValueAt(quickRatio,  modelRow, 19); // Index of the new "Quick Ratio" column
-                                tableModel.setValueAt(peg1, modelRow, 20);
+                                tableModel.setValueAt(epsGrowth2, modelRow, 20);
                                 
                             });
 
@@ -811,7 +814,7 @@ private JSONObject fetchStockData(String ticker) {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double currentRatio, double quickRatio) {
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double currentRatio, double quickRatio) {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
     double payoutRatioTerm = 0;
@@ -819,6 +822,7 @@ private JSONObject fetchStockData(String ticker) {
     double debtToEquityTerm = 0;
     double roeTerm = 0;
     double epsGrowth1Term =0;
+    double epsGrowth2Term =0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
 
@@ -870,9 +874,7 @@ private JSONObject fetchStockData(String ticker) {
     }
     
     // Conditions for roe
-    if (roe <= 0) {
-        roeTerm = -1;
-    } else if (roe > 0 && roe < 0.1) {
+    if (roe <= 0.1) {
         roeTerm = 0;
     } else if (roe >= 0.1 && roe < 0.2) {
         roeTerm = 1;
@@ -880,14 +882,23 @@ private JSONObject fetchStockData(String ticker) {
         roeTerm = 2;
     }
     
-    // Conditions for pegTtm
-    if (epsGrowth1 <= 0) {
+    // Conditions for epsGrowht1
+    if (epsGrowth1 < 25) {
         epsGrowth1Term = 0;
-    } else if (epsGrowth1 > 10 && epsGrowth1 < 20) {
+    } else if (epsGrowth1 >= 25 && epsGrowth1 < 75) {
         epsGrowth1Term = 1;
-    } else if (epsGrowth1 >= 20 && epsGrowth1 < 200) {
+    } else if (epsGrowth1 >= 75) {
         epsGrowth1Term = 2;
     
+    }
+    
+      // Conditions for epsGrowht2
+    if (epsGrowth2 < 25) {
+        epsGrowth2Term = 0;
+    } else if (epsGrowth2 >= 25 && epsGrowth2 < 75) {
+        epsGrowth2Term = 1;
+    } else if (epsGrowth2 >= 75) {
+        epsGrowth2Term = 2;
     }
     
     // Conditions for current ratio
@@ -908,11 +919,225 @@ private JSONObject fetchStockData(String ticker) {
         quickRatioTerm  = 2;
     }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + epsGrowth1Term + currentRatioTerm + quickRatioTerm;
-}
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + currentRatioTerm + quickRatioTerm;
+    }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
+    
+private void importTickersFromFMP() {
+    try {
+        String urlString = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + API_KEY;
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        
+        int responseCode = connection.getResponseCode();
+        if (responseCode == 200) {
+            Scanner scanner = new Scanner(url.openStream());
+            String response = scanner.useDelimiter("\\Z").next();
+            scanner.close();
+            
+            JSONArray stocksArray = new JSONArray(response);
+            
+            // Create and show ticker selection dialog
+            JDialog dialog = new JDialog((Frame)null, "Select Tickers to Import", true);
+            dialog.setLayout(new BorderLayout());
+            
+            // Create a panel with a search field and list
+            JPanel panel = new JPanel(new BorderLayout());
+            JTextField searchField = new JTextField(20);
+            JList<String> tickerList = new JList<String>();
+            DefaultListModel<String> listModel = new DefaultListModel<>();
+            
+            // Populate the list model with ticker symbols
+            for (int i = 0; i < stocksArray.length(); i++) {
+                JSONObject stock = stocksArray.getJSONObject(i);
+                String ticker = stock.optString("symbol", "");
+                String name = stock.optString("name", "");
+                String exchange = stock.optString("exchange", "");
+                
+                // Skip if any required field is empty
+                if (ticker.isEmpty() || name.isEmpty()) {
+                    continue;
+                }
+
+                // Create display string with exchange info if available
+                String displayString = exchange.isEmpty() ? 
+                    String.format("%s - %s", ticker, name) :
+                    String.format("%s - %s (%s)", ticker, name, exchange);
+                
+                listModel.addElement(displayString);
+            }
+            
+            tickerList.setModel(listModel);
+            tickerList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            
+            // Add search functionality
+            searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+                public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+                public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+                
+                private void filter() {
+                    String searchText = searchField.getText().toLowerCase();
+                    DefaultListModel<String> filteredModel = new DefaultListModel<>();
+                    
+                    for (int i = 0; i < listModel.getSize(); i++) {
+                        String element = listModel.getElementAt(i);
+                        if (element.toLowerCase().contains(searchText)) {
+                            filteredModel.addElement(element);
+                        }
+                    }
+                    tickerList.setModel(filteredModel);
+                }
+            });
+            
+            // Add components to panel
+            JPanel searchPanel = new JPanel(new BorderLayout());
+            searchPanel.add(new JLabel("Search: "), BorderLayout.WEST);
+            searchPanel.add(searchField, BorderLayout.CENTER);
+            
+            panel.add(searchPanel, BorderLayout.NORTH);
+            panel.add(new JScrollPane(tickerList), BorderLayout.CENTER);
+            
+            // Add buttons
+            JPanel buttonPanel = new JPanel();
+            JButton importButton = new JButton("Import Selected");
+            JButton cancelButton = new JButton("Cancel");
+            
+            importButton.addActionListener(e -> {
+                List<String> selectedItems = tickerList.getSelectedValuesList();
+                dialog.dispose();
+                
+                if (!selectedItems.isEmpty()) {
+                    importSelectedTickers(selectedItems);
+                }
+            });
+            
+            cancelButton.addActionListener(e -> dialog.dispose());
+            
+            buttonPanel.add(importButton);
+            buttonPanel.add(cancelButton);
+            
+            dialog.add(panel, BorderLayout.CENTER);
+            dialog.add(buttonPanel, BorderLayout.SOUTH);
+            dialog.setSize(500, 600);
+            dialog.setLocationRelativeTo(null);
+            dialog.setVisible(true);
+            
+        } else {
+            JOptionPane.showMessageDialog(null,
+                "Error fetching ticker list. Response code: " + responseCode,
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(null,
+            "Error fetching ticker list: " + e.getMessage(),
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+private void importSelectedTickers(List<String> selectedItems) {
+    // Create a progress dialog
+    JDialog progressDialog = new JDialog((Frame)null, "Importing Tickers", true);
+    progressDialog.setLayout(new BorderLayout());
+    
+    JProgressBar progressBar = new JProgressBar(0, selectedItems.size());
+    JLabel statusLabel = new JLabel("Importing tickers...");
+    JPanel progressPanel = new JPanel(new BorderLayout(5, 5));
+    progressPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    progressPanel.add(statusLabel, BorderLayout.NORTH);
+    progressPanel.add(progressBar, BorderLayout.CENTER);
+    
+    progressDialog.add(progressPanel);
+    progressDialog.setSize(300, 100);
+    progressDialog.setLocationRelativeTo(null);
+
+    SwingWorker<Void, Object[]> worker = new SwingWorker<Void, Object[]>() {
+        @Override
+        protected Void doInBackground() {
+            int count = 0;
+            for (String item : selectedItems) {
+                try {
+                    // Extract ticker from the selected item (format: "TICKER - Name (Exchange)")
+                    String ticker = item.split(" - ")[0];
+                    String name = item.split(" - ")[1].split(" \\(")[0];
+                    
+                    // Check if ticker already exists
+                    boolean tickerExists = false;
+                    for (int row = 0; row < tableModel.getRowCount(); row++) {
+                        if (tableModel.getValueAt(row, 1).equals(ticker)) {
+                            tickerExists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!tickerExists) {
+                        // Create a row with just the name and ticker, all other values set to 0 or default
+                        Object[] rowData = new Object[tableModel.getColumnCount()];
+                        rowData[0] = name;  // Name
+                        rowData[1] = ticker; // Ticker
+                        // Fill remaining columns with 0 or default values
+                        for (int i = 2; i < rowData.length; i++) {
+                            if (i == 16) { // Debt to Equity column
+                                rowData[i] = "n/a";
+                            } else {
+                                rowData[i] = 0.0;
+                            }
+                        }
+                        publish(rowData);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                
+                count++;
+                final int currentCount = count;
+                final String currentTicker = item.split(" - ")[0];
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setValue(currentCount);
+                    statusLabel.setText("Importing: " + currentTicker + " (" + currentCount + "/" + selectedItems.size() + ")");
+                });
+            }
+            return null;
+        }
+
+        @Override
+        protected void process(List<Object[]> chunks) {
+            // Add each chunk of data to the table model
+            for (Object[] rowData : chunks) {
+                tableModel.addRow(rowData);
+            }
+            // Save after each batch of updates
+            saveWatchlist();
+        }
+
+        @Override
+        protected void done() {
+            progressDialog.dispose();
+            saveWatchlist();
+            
+            // Ask user if they want to refresh the data now
+            int response = JOptionPane.showConfirmDialog(null,
+                "Tickers imported successfully! Do you want to refresh the data now?",
+                "Import Complete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+                
+            if (response == JOptionPane.YES_OPTION) {
+                refreshWatchlist();
+            }
+        }
+    };
+
+    // Start the worker and show the progress dialog
+    worker.execute();
+    progressDialog.setVisible(true);
+}
 
     static class CustomCellRenderer extends DefaultTableCellRenderer {
         @Override
