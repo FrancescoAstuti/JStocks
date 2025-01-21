@@ -20,6 +20,8 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Calendar;
+import javax.swing.JProgressBar;
+import javax.swing.BorderFactory;
 
 public class Watchlist {
     private JTable watchlistTable;
@@ -527,6 +529,20 @@ public class Watchlist {
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
 
+                // Create progress bar panel
+           JPanel progressPanel = new JPanel(new BorderLayout());
+           JProgressBar progressBar = new JProgressBar(0, tableModel.getRowCount());
+           JLabel statusLabel = new JLabel("Refreshing watchlist...");
+           progressPanel.add(statusLabel, BorderLayout.NORTH);
+           progressPanel.add(progressBar, BorderLayout.CENTER);
+           progressPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+           // Add progress panel to the main window
+           Container contentPane = watchlistTable.getRootPane().getContentPane();
+           contentPane.add(progressPanel, BorderLayout.SOUTH);
+           contentPane.revalidate();
+           contentPane.repaint();
+
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
@@ -535,6 +551,14 @@ public class Watchlist {
                     int modelRow = watchlistTable.convertRowIndexToModel(i);
                     String ticker = (String) tableModel.getValueAt(modelRow, 1);
                     try {
+                        
+                        // Update progress
+                        final int progress = i;
+                        SwingUtilities.invokeLater(() -> {
+                        progressBar.setValue(progress);
+                        statusLabel.setText("Refreshing: " + ticker + " (" + progress + "/" + rowCount + ")");
+                         });
+                        
                         JSONObject stockData = fetchStockData(ticker);
                         JSONObject ratios = fetchStockRatios(ticker);
                         JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
@@ -609,12 +633,17 @@ public class Watchlist {
                 return null;
             }
 
-            @Override
+             @Override
             protected void done() {
-                saveWatchlist();
-                System.out.println("Watchlist refresh completed");
-            }
-        };
+            // Remove progress panel when done
+            contentPane.remove(progressPanel);
+            contentPane.revalidate();
+            contentPane.repaint();
+            
+            saveWatchlist();
+            System.out.println("Watchlist refresh completed");
+        }
+    };
 
         worker.execute();
     }
