@@ -52,7 +52,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2"
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3"
         }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -83,6 +83,7 @@ public class Watchlist {
                     case 18:
                     case 19:
                     case 20:
+                    case 21:
                         return Double.class;
                     default:
                         return String.class;
@@ -260,7 +261,8 @@ public class Watchlist {
                         jsonObject.optDouble("epsGrowth1", 0.0),
                         jsonObject.optDouble("currentRatio", 0.0),
                         jsonObject.optDouble("quickRatio",   0.0),
-                        jsonObject.optDouble("epsGrowth2", 0.0), 
+                        jsonObject.optDouble("epsGrowth2", 0.0),
+                        jsonObject.optDouble("epsGrowth3", 0.0), 
                         
                         
                     };
@@ -307,7 +309,8 @@ public class Watchlist {
             jsonObject.put("epsGrowth1", tableModel.getValueAt(i, 17));
             jsonObject.put("currentRatio", tableModel.getValueAt(i, 18));
             jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
-             jsonObject.put("epsGrowth2", tableModel.getValueAt(i, 20));
+            jsonObject.put("epsGrowth2", tableModel.getValueAt(i, 20));
+            jsonObject.put("epsGrowth3", tableModel.getValueAt(i, 21));
             jsonArray.put(jsonObject);
         }
 
@@ -490,11 +493,12 @@ public class Watchlist {
             double currentRatio = ratios.optDouble("currentRatioTTM", 0.0);
             double quickRatio = ratios.optDouble("quickRatioTTM", 0.0);
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, currentRatio, quickRatio);
+            double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2
+                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2, epsGrowth3,
             };
 
             tableModel.addRow(rowData);
@@ -525,7 +529,15 @@ public class Watchlist {
     double growthRate2 = 100 * (epsNextYear - epsCurrentYear) / epsCurrentYear;
    
     return round(growthRate2, 2);
-}
+    }
+    
+    private double calculateEpsGrowth3(double epsYear3, double epsNextYear) {
+    if (epsNextYear == 0) return 0;
+    double growthRate3 = 100 * (epsYear3 - epsNextYear) / epsNextYear;
+   
+    return round(growthRate3, 2);
+    }
+    
     private void refreshWatchlist() {
         System.out.println("Starting watchlist refresh...");
 
@@ -594,9 +606,10 @@ public class Watchlist {
                                                       
                             double epsGrowth1 = calculateEpsGrowth1(epsCurrentYear,epsTtm);
                             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
+                            double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, currentRatio, quickRatio);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -620,6 +633,7 @@ public class Watchlist {
                                 tableModel.setValueAt(currentRatio, modelRow, 18); // Index of the new "Current Ratio" column
                                 tableModel.setValueAt(quickRatio,  modelRow, 19); // Index of the new "Quick Ratio" column
                                 tableModel.setValueAt(epsGrowth2, modelRow, 20);
+                                tableModel.setValueAt(epsGrowth3, modelRow, 21);
                                 
                             });
 
@@ -843,7 +857,7 @@ private JSONObject fetchStockData(String ticker) {
     }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double currentRatio, double quickRatio) {
+                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double epsGrowth3, double currentRatio, double quickRatio) {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
     double payoutRatioTerm = 0;
@@ -852,6 +866,7 @@ private JSONObject fetchStockData(String ticker) {
     double roeTerm = 0;
     double epsGrowth1Term =0;
     double epsGrowth2Term =0;
+    double epsGrowth3Term = 0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
 
@@ -930,6 +945,15 @@ private JSONObject fetchStockData(String ticker) {
         epsGrowth2Term = 2;
     }
     
+     // Conditions for epsGrowht3
+    if (epsGrowth3 < 25) {
+        epsGrowth3Term = 0;
+    } else if (epsGrowth3 >= 25 && epsGrowth3 < 75) {
+        epsGrowth3Term = 1;
+    } else if (epsGrowth3 >= 75) {
+        epsGrowth3Term = 2;
+    }
+    
     // Conditions for current ratio
     if (currentRatio < 1) {
         currentRatioTerm = 0;
@@ -948,7 +972,7 @@ private JSONObject fetchStockData(String ticker) {
         quickRatioTerm  = 2;
     }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + currentRatioTerm + quickRatioTerm;
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
