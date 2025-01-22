@@ -447,6 +447,20 @@ public class Watchlist {
     String ticker = JOptionPane.showInputDialog("Enter Stock Ticker:");
     if (ticker != null && !ticker.trim().isEmpty()) {
         ticker = ticker.toUpperCase();
+        
+        // Check if ticker already exists in the watchlist
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            if (ticker.equals((String) tableModel.getValueAt(i, 1))) {
+                JOptionPane.showMessageDialog(null,
+                    "Stock '" + ticker + "' is already in the watchlist.",
+                    "Duplicate Stock",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+        
+                  
+        
         try {
             JSONObject stockData = fetchStockData(ticker);
 
@@ -927,7 +941,12 @@ private JSONObject fetchStockData(String ticker) {
     }
     
     // Conditions for epsGrowht1
-    if (epsGrowth1 < 25) {
+    
+    if (epsGrowth1 <= -25) {
+        epsGrowth1Term = -2; 
+    }  else if (epsGrowth1 > -25 && epsGrowth1 <=0) {
+        epsGrowth1Term = -1;        
+    }  else if (epsGrowth1 > 0 && epsGrowth1 < 25) {
         epsGrowth1Term = 0;
     } else if (epsGrowth1 >= 25 && epsGrowth1 < 75) {
         epsGrowth1Term = 1;
@@ -937,7 +956,11 @@ private JSONObject fetchStockData(String ticker) {
     }
     
       // Conditions for epsGrowht2
-    if (epsGrowth2 < 25) {
+    if (epsGrowth2 <= -25) {
+        epsGrowth2Term = -2; 
+    }  else if (epsGrowth2 > -25 && epsGrowth2 <=0) {
+        epsGrowth2Term = -1;        
+    }  else if (epsGrowth2 > 0 && epsGrowth2 < 25) {
         epsGrowth2Term = 0;
     } else if (epsGrowth2 >= 25 && epsGrowth2 < 75) {
         epsGrowth2Term = 1;
@@ -945,12 +968,16 @@ private JSONObject fetchStockData(String ticker) {
         epsGrowth2Term = 2;
     }
     
-     // Conditions for epsGrowht3
-    if (epsGrowth3 < 25) {
+       // Conditions for epsGrowht2
+    if (epsGrowth3 <= -25) {
+        epsGrowth3Term = -2; 
+    }  else if (epsGrowth3 > -25 && epsGrowth3 <=0) {
+        epsGrowth3Term = -1;        
+    }  else if (epsGrowth3 > 0 && epsGrowth3 < 25) {
         epsGrowth3Term = 0;
     } else if (epsGrowth3 >= 25 && epsGrowth3 < 75) {
         epsGrowth3Term = 1;
-    } else if (epsGrowth3 >= 75) {
+    } else if (epsGrowth2 >= 75) {
         epsGrowth3Term = 2;
     }
     
