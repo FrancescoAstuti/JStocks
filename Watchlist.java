@@ -54,12 +54,7 @@ public class Watchlist {
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
             "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3"
         }, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                // Allow editing certain columns if desired (8, 9 for example).
-                // Return false if no columns should be editable.
-                return column == 8 || column == 9;
-            }
+            
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
@@ -98,8 +93,11 @@ public class Watchlist {
         watchlistTable.setRowSorter(sorter);
 
         watchlistTable.getTableHeader().setReorderingAllowed(true);
-        watchlistTable.getColumnModel().getColumn(8).setCellRenderer(new CustomCellRenderer());
-        watchlistTable.getColumnModel().getColumn(9).setCellRenderer(new CustomCellRenderer());
+        
+        CustomCellRenderer renderer = new CustomCellRenderer();
+        for (int i = 0; i < watchlistTable.getColumnCount(); i++) {
+             watchlistTable.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
 
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -815,7 +813,14 @@ private JSONObject fetchStockData(String ticker) {
                 for (int i = 0; i < data.length(); i++) {
                     JSONObject metrics = data.getJSONObject(i);
                     double pbRatio = metrics.optDouble("pbRatio", 0.0);
-                    if (pbRatio > 0) {
+                    if (pbRatio != 0.0) {
+                        
+                        if (pbRatio > 0){
+                        pbRatio = Math.min(pbRatio, 10.0);
+                    } else {
+                        pbRatio = Math.max(pbRatio, -10.0);
+                    }
+                                                               
                         sum += pbRatio;
                         count++;
                     }
@@ -1225,20 +1230,34 @@ private void importSelectedTickers(List<String> selectedItems) {
     progressDialog.setVisible(true);
 }
 
-    static class CustomCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus, int row, int column) {
-            Component cell = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
-            if (value instanceof Double && (Double) value == 0.0) {
-                cell.setBackground(Color.YELLOW);
+public class CustomCellRenderer extends DefaultTableCellRenderer {
+    private final Color LIGHT_RED = new Color(255, 235, 235);
+    private final Color LIGHT_YELLOW = new Color(255, 255, 220);// Light red color
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value,
+                                                   boolean isSelected, boolean hasFocus, int row, int column) {
+        Component cell = super.getTableCellRendererComponent(
+            table, value, isSelected, hasFocus, row, column);
+            
+        if (!isSelected) { // Don't change background if cell is selected
+            if (value instanceof Double) {
+                double numValue = (Double) value;
+                if (numValue < 0) {
+                    cell.setBackground(LIGHT_RED);
+                } else if (numValue == 0.0) {
+                    cell.setBackground(LIGHT_YELLOW);
+                } else {
+                    cell.setBackground(Color.WHITE);
+                }
             } else if ("n/a".equals(value)) {
                 cell.setBackground(Color.LIGHT_GRAY);
             } else {
                 cell.setBackground(Color.WHITE);
             }
-            return cell;
         }
+        
+        return cell;
     }
+}
 }
