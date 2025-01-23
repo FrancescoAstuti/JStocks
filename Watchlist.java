@@ -795,7 +795,7 @@ private JSONObject fetchStockData(String ticker) {
 }
 
     private double fetchAveragePB(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
+        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=20&apikey=%s", ticker, API_KEY);
         HttpURLConnection connection = null;
         double sum = 0;
         int count = 0;
@@ -832,43 +832,49 @@ private JSONObject fetchStockData(String ticker) {
         return count > 0 ? round(sum / count, 2) : 0.0;
     }
 
-    private double fetchAveragePE(String ticker) {
-        String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=5&apikey=%s", ticker, API_KEY);
-        HttpURLConnection connection = null;
-        double sum = 0;
-        int count = 0;
+private double fetchAveragePE(String ticker) {
+    String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=20&apikey=%s", ticker, API_KEY);
+    HttpURLConnection connection = null;
+    double sum = 0;
+    int count = 0;
 
-        try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+    try {
+        URL url = new URL(urlString);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                Scanner scanner = new Scanner(url.openStream());
-                String response = scanner.useDelimiter("\\Z").next();
-                scanner.close();
+        int responseCode = connection.getResponseCode();
+        if (responseCode == 200) {
+            Scanner scanner = new Scanner(url.openStream());
+            String response = scanner.useDelimiter("\\Z").next();
+            scanner.close();
 
-                JSONArray data = new JSONArray(response);
-                for (int i = 0; i < data.length(); i++) {
-                    JSONObject metrics = data.getJSONObject(i);
-                    double peRatio = metrics.optDouble("peRatio", 0.0);
+            JSONArray data = new JSONArray(response);
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject metrics = data.getJSONObject(i);
+                double peRatio = metrics.optDouble("peRatio", 0.0);
+                if (peRatio != 0.0) {  // Include all non-zero PE ratios
+                    // Cap PE ratios: positive at 30, negative at -30
                     if (peRatio > 0) {
-                        sum += peRatio;
-                        count++;
+                        peRatio = Math.min(peRatio, 30.0);
+                    } else {
+                        peRatio = Math.max(peRatio, -30.0);
                     }
+                    sum += peRatio;
+                    count++;
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
         }
-
-        return count > 0 ? round(sum / count, 2) : 0.0;
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        if (connection != null) {
+            connection.disconnect();
+        }
     }
+
+    return count > 0 ? round(sum / count, 2) : 0.0;
+}
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
                                double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double epsGrowth3, double currentRatio, double quickRatio) {
