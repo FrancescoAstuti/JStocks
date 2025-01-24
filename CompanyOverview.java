@@ -48,21 +48,21 @@ public class CompanyOverview {
         List<RatioData> epsRatios = Ratios.fetchQuarterlyEPS(ticker);
 
         // Filter data to the last 10 years and sort by date
-        LocalDate tenYearsAgo = LocalDate.now().minusYears(10);
+        LocalDate timeRange = LocalDate.now().minusYears(20);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         peRatios = peRatios.stream()
-                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(tenYearsAgo))
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(timeRange))
                 .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
                 .collect(Collectors.toList());
 
         pbRatios = pbRatios.stream()
-                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(tenYearsAgo))
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(timeRange))
                 .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
                 .collect(Collectors.toList());
 
         epsRatios = epsRatios.stream()
-                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(tenYearsAgo))
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(timeRange))
                 .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
                 .collect(Collectors.toList());
 
