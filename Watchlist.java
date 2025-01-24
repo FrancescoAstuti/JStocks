@@ -22,6 +22,8 @@ import org.json.JSONObject;
 import java.util.Calendar;
 import javax.swing.JProgressBar;
 import javax.swing.BorderFactory;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class Watchlist {
     private JTable watchlistTable;
@@ -98,7 +100,24 @@ public class Watchlist {
         for (int i = 0; i < watchlistTable.getColumnCount(); i++) {
              watchlistTable.getColumnModel().getColumn(i).setCellRenderer(renderer);
         }
-
+        
+        watchlistTable.addMouseListener(new MouseAdapter() {
+         @Override
+            public void mouseClicked(MouseEvent e) {
+             if (e.getClickCount() == 1) {  // Single click
+             int row = watchlistTable.rowAtPoint(e.getPoint());
+             int col = watchlistTable.columnAtPoint(e.getPoint());
+            
+             if (row >= 0 && col == 1) {  // Check if click is in the Ticker column
+                String ticker = (String) watchlistTable.getValueAt(row, col);
+                // Get the company name from the first column (index 0)
+                String companyName = (String) watchlistTable.getValueAt(row, 0);
+                CompanyOverview.showCompanyOverview(ticker, companyName);
+            }
+        }
+    }
+});
+        
         JScrollPane scrollPane = new JScrollPane(watchlistTable);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -130,7 +149,9 @@ public class Watchlist {
                 }
             }
         });
-
+        
+        
+        
         // After creating the UI, load settings asynchronously
         SwingUtilities.invokeLater(() -> {
             loadColumnSettings();
