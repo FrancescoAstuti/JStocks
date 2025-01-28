@@ -47,7 +47,7 @@ public class CompanyOverview {
         List<RatioData> pbRatios = Ratios.fetchHistoricalPB(ticker);
         List<RatioData> epsRatios = Ratios.fetchQuarterlyEPS(ticker);
 
-        // Filter data to the last 10 years and sort by date
+        // Filter data to the last 20 years and sort by date
         LocalDate timeRange = LocalDate.now().minusYears(20);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -92,21 +92,21 @@ public class CompanyOverview {
 
         // Create the PE chart
         JFreeChart peChart = ChartFactory.createLineChart(
-                "10-Year Quarterly PE Ratios",
+                "Quarterly PE Ratio",
                 "Date", "PE Ratio",
                 peDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the PB chart
         JFreeChart pbChart = ChartFactory.createLineChart(
-                "10-Year Quarterly PB Ratios",
+                "Quarterly PB Ratio",
                 "Date", "PB Ratio",
                 pbDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the EPS chart
         JFreeChart epsChart = ChartFactory.createLineChart(
-                "10-Year Quarterly EPS",
+                "Quarterly EPS",
                 "Date", "EPS",
                 epsDataset, PlotOrientation.VERTICAL,
                 true, true, false);
