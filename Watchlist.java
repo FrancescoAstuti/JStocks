@@ -917,7 +917,7 @@ private double fetchAveragePE(String ticker) {
     double quickRatioTerm = 0;
 
     // Conditions for peRatioTerm
-    if (peTtm == 0) {
+    if (peTtm <= 0) {
         peRatioTerm = 0;
     } else if (peAvg / peTtm < 1) {
         peRatioTerm = 0;
@@ -946,7 +946,7 @@ private double fetchAveragePE(String ticker) {
     }
     
     // Conditions for payoutRatioTerm
-    if (payoutRatio <= 0 || payoutRatio >= 1 || dividendYield < 0.03 ) {
+      if (payoutRatio <= 0 || payoutRatio >= 1 || dividendYield < 0.03 ) {
         payoutRatioTerm = 0;
     } else if (payoutRatio >= 0.5 && payoutRatio < 1) {
         payoutRatioTerm = 1;
@@ -1031,7 +1031,7 @@ private double fetchAveragePE(String ticker) {
         quickRatioTerm  = 2;
     }
 
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm;
+    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + 2*(epsGrowth1Term + epsGrowth2Term + epsGrowth3Term) + currentRatioTerm + quickRatioTerm;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
