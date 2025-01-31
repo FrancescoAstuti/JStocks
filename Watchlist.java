@@ -1,5 +1,6 @@
 package afin.jstocks;
 
+
 import javax.swing.*;
 import javax.swing.event.RowSorterEvent;
 import javax.swing.event.RowSorterListener;
@@ -549,6 +550,7 @@ public class Watchlist {
         }
     }
 }
+    
     private double calculateEpsGrowth1(double epsCurrentYear, double epsTtm) {
         if (epsTtm <= 0) return 0;
         else {
@@ -557,6 +559,7 @@ public class Watchlist {
         return round(growthRate1, 2);
         }
     }
+    
     private double calculateEpsGrowth2(double epsCurrentYear, double epsNextYear) {
     if (epsCurrentYear == 0) return 0;
     double growthRate2 = 100 * (epsNextYear - epsCurrentYear) / epsCurrentYear;
@@ -695,7 +698,6 @@ public class Watchlist {
         worker.execute();
     }
 
-      
     private void deleteStock() {
         int selectedRow = watchlistTable.getSelectedRow();
         if (selectedRow != -1) {
@@ -707,8 +709,6 @@ public class Watchlist {
         }
     }
 
-    
-
     private double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
         BigDecimal bd = BigDecimal.valueOf(value);
@@ -716,7 +716,7 @@ public class Watchlist {
         return bd.doubleValue();
     }
 
-private JSONObject fetchStockData(String ticker) {
+    private JSONObject fetchStockData(String ticker) {
     String urlString = String.format("https://financialmodelingprep.com/api/v3/quote/%s?apikey=%s", ticker, API_KEY);
     HttpURLConnection connection = null;
 
@@ -858,7 +858,7 @@ private JSONObject fetchStockData(String ticker) {
         return count > 0 ? round(sum / count, 2) : 0.0;
     }
 
-private double fetchAveragePE(String ticker) {
+    private double fetchAveragePE(String ticker) {
     String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=20&apikey=%s", ticker, API_KEY);
     HttpURLConnection connection = null;
     double sum = 0;
@@ -1037,7 +1037,7 @@ private double fetchAveragePE(String ticker) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
     
-private void importTickersFromFMP() {
+   private void importTickersFromFMP() {
     try {
         String urlString = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + API_KEY;
         URL url = new URL(urlString);
@@ -1153,7 +1153,7 @@ private void importTickersFromFMP() {
     }
 }
 
-private void importSelectedTickers(List<String> selectedItems) {
+   private void importSelectedTickers(List<String> selectedItems) {
     // Create a progress dialog
     JDialog progressDialog = new JDialog((Frame)null, "Importing Tickers", true);
     progressDialog.setLayout(new BorderLayout());
@@ -1251,7 +1251,7 @@ private void importSelectedTickers(List<String> selectedItems) {
     progressDialog.setVisible(true);
 }
 
-public class CustomCellRenderer extends DefaultTableCellRenderer {
+   public class CustomCellRenderer extends DefaultTableCellRenderer {
     private final Color LIGHT_RED = new Color(255, 235, 235);
     private final Color LIGHT_YELLOW = new Color(255, 255, 220);// Light red color
 
