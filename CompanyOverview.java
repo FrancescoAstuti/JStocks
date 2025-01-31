@@ -14,11 +14,13 @@ import org.jfree.data.category.DefaultCategoryDataset;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.FileWriter;
@@ -35,25 +37,31 @@ public class CompanyOverview {
 
     public static void showCompanyOverview(String ticker, String companyName) {
         JFrame overviewFrame = new JFrame("Company Overview: " + ticker);
-        overviewFrame.setSize(1000, 800);
+        overviewFrame.setSize(1200, 1000); // Increase the size of the frame
         overviewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         JPanel panel = new JPanel(new BorderLayout());
         JLabel label = new JLabel("Company Name: " + companyName, SwingConstants.CENTER);
         panel.add(label, BorderLayout.NORTH);
 
-        // Fetch historical PE, PB ratios, and quarterly EPS
+        // Fetch historical PE, PB ratios, quarterly EPS, and PFCF ratios
         List<RatioData> peRatios = Ratios.fetchHistoricalPE(ticker);
         List<RatioData> pbRatios = Ratios.fetchHistoricalPB(ticker);
         List<RatioData> epsRatios = Ratios.fetchQuarterlyEPS(ticker);
+        List<RatioData> pfcfRatios = Ratios.fetchHistoricalPFCF(ticker);
 
-        // Filter data to the last 20 years and sort by date
+        // Filter data to the last 10 years and sort by date
         LocalDate timeRange = LocalDate.now().minusYears(20);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         peRatios = peRatios.stream()
                 .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(timeRange))
                 .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
+                .collect(Collectors.toList());
+                 // Cap PE values between 0 and 40
+                List<Double> cappedPeValues = peRatios.stream()
+                .map(RatioData::getValue)
+                .map(value -> Math.max(Math.min(value, 50), -50))
                 .collect(Collectors.toList());
 
         pbRatios = pbRatios.stream()
@@ -66,18 +74,32 @@ public class CompanyOverview {
                 .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
                 .collect(Collectors.toList());
 
-        // Calculate average for PE, PB ratios, and EPS
-        double peAverage = calculateAverage(peRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
+        pfcfRatios = pfcfRatios.stream()
+                .filter(data -> LocalDate.parse(data.getDate(), formatter).isAfter(timeRange))
+                .sorted(Comparator.comparing(data -> LocalDate.parse(data.getDate(), formatter)))
+                .collect(Collectors.toList());
+
+       
+
+        // Cap negative PFCF values at -30 and positive values at 30
+        List<Double> cappedPfcfValues = pfcfRatios.stream()
+                .map(RatioData::getValue)
+                .map(value -> Math.max(Math.min(value, 50), -50))
+                .collect(Collectors.toList());
+
+        // Calculate average for capped PE, PB ratios, EPS, and capped PFCF ratios
+        double peAverage = calculateAverage(cappedPeValues);
         double pbAverage = calculateAverage(pbRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
         double epsAverage = calculateAverage(epsRatios.stream().map(RatioData::getValue).collect(Collectors.toList()));
+        double pfcfAverage = calculateAverage(cappedPfcfValues);
 
         // Save the data to a JSON file
-        saveDataToFile(ticker, peRatios, pbRatios, peAverage, pbAverage);
+        saveDataToFile(ticker, peRatios, pbRatios, epsRatios, pfcfRatios, peAverage, pbAverage, epsAverage, pfcfAverage);
 
         // Create datasets for the charts
         DefaultCategoryDataset peDataset = new DefaultCategoryDataset();
         for (RatioData data : peRatios) {
-            peDataset.addValue(data.getValue(), "PE Ratio", data.getDate());
+            peDataset.addValue(Math.max(Math.min(data.getValue(), 50), -50), "PE Ratio", data.getDate()); // Cap values between 0 and 40
         }
 
         DefaultCategoryDataset pbDataset = new DefaultCategoryDataset();
@@ -90,25 +112,37 @@ public class CompanyOverview {
             epsDataset.addValue(data.getValue(), "EPS", data.getDate());
         }
 
+        DefaultCategoryDataset pfcfDataset = new DefaultCategoryDataset();
+        for (RatioData data : pfcfRatios) {
+            pfcfDataset.addValue(Math.max(Math.min(data.getValue(), 50), -50), "PFCF Ratio", data.getDate()); // Cap values between -30 and 30
+        }
+
         // Create the PE chart
         JFreeChart peChart = ChartFactory.createLineChart(
-                "Quarterly PE Ratio",
+                "PE Ratio",
                 "Date", "PE Ratio",
                 peDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the PB chart
         JFreeChart pbChart = ChartFactory.createLineChart(
-                "Quarterly PB Ratio",
+                "PB Ratios",
                 "Date", "PB Ratio",
                 pbDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Create the EPS chart
         JFreeChart epsChart = ChartFactory.createLineChart(
-                "Quarterly EPS",
+                "EPS",
                 "Date", "EPS",
                 epsDataset, PlotOrientation.VERTICAL,
+                true, true, false);
+
+        // Create the PFCF chart
+        JFreeChart pfcfChart = ChartFactory.createLineChart(
+                "PFCF Ratio",
+                "Date", "PFCF Ratio",
+                pfcfDataset, PlotOrientation.VERTICAL,
                 true, true, false);
 
         // Customize the time axis to show only years
@@ -127,6 +161,11 @@ public class CompanyOverview {
         epsCategoryAxis.setTickLabelsVisible(true);
         customizeAxis(epsCategoryAxis);
 
+        CategoryAxis pfcfCategoryAxis = pfcfChart.getCategoryPlot().getDomainAxis();
+        pfcfCategoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+        pfcfCategoryAxis.setTickLabelsVisible(true);
+        customizeAxis(pfcfCategoryAxis);
+
         // Add average lines to the PE chart
         addMarker(peChart, peAverage, "Average PE", Color.BLUE);
 
@@ -136,18 +175,35 @@ public class CompanyOverview {
         // Add average lines to the EPS chart
         addMarker(epsChart, epsAverage, "Average EPS", Color.BLUE);
 
-        // Create chart panels
+        // Add average lines to the PFCF chart
+        addMarker(pfcfChart, pfcfAverage, "Average PFCF", Color.BLUE);
+
+        // Create chart panels with larger dimensions
         ChartPanel peChartPanel = new ChartPanel(peChart);
+        peChartPanel.setPreferredSize(new Dimension(1100, 400));
+
         ChartPanel pbChartPanel = new ChartPanel(pbChart);
+        pbChartPanel.setPreferredSize(new Dimension(1100, 400));
+
         ChartPanel epsChartPanel = new ChartPanel(epsChart);
+        epsChartPanel.setPreferredSize(new Dimension(1100, 400));
+
+        ChartPanel pfcfChartPanel = new ChartPanel(pfcfChart);
+        pfcfChartPanel.setPreferredSize(new Dimension(1100, 400));
 
         // Add chart panels to the main panel
-        JPanel chartsPanel = new JPanel(new GridLayout(3, 1));
+        JPanel chartsPanel = new JPanel(new GridLayout(4, 1));
         chartsPanel.add(peChartPanel);
         chartsPanel.add(pbChartPanel);
         chartsPanel.add(epsChartPanel);
+        chartsPanel.add(pfcfChartPanel);
 
-        panel.add(chartsPanel, BorderLayout.CENTER);
+        // Add the main panel to a scroll pane
+        JScrollPane scrollPane = new JScrollPane(chartsPanel);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        panel.add(scrollPane, BorderLayout.CENTER);
 
         overviewFrame.add(panel);
         overviewFrame.setLocationRelativeTo(null);
@@ -183,17 +239,19 @@ public class CompanyOverview {
         chart.getCategoryPlot().addRangeMarker(marker, Layer.FOREGROUND);
     }
 
-    private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios, double peAverage, double pbAverage) {
+    private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios, List<RatioData> epsRatios, List<RatioData> pfcfRatios, double peAverage, double pbAverage, double epsAverage, double pfcfAverage) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("ticker", ticker);
         jsonObject.put("peAverage", peAverage);
         jsonObject.put("pbAverage", pbAverage);
+        jsonObject.put("epsAverage", epsAverage);
+        jsonObject.put("pfcfAverage", pfcfAverage);
 
         JSONArray peArray = new JSONArray();
         for (RatioData data : peRatios) {
             JSONObject dataObject = new JSONObject();
             dataObject.put("date", data.getDate());
-            dataObject.put("value", data.getValue());
+            dataObject.put("value", Math.max(Math.min(data.getValue(), 50), -50)); // Cap values between 0 and 40
             peArray.put(dataObject);
         }
         jsonObject.put("peRatios", peArray);
@@ -206,6 +264,24 @@ public class CompanyOverview {
             pbArray.put(dataObject);
         }
         jsonObject.put("pbRatios", pbArray);
+
+        JSONArray epsArray = new JSONArray();
+        for (RatioData data : epsRatios) {
+            JSONObject dataObject = new JSONObject();
+            dataObject.put("date", data.getDate());
+            dataObject.put("value", data.getValue());
+            epsArray.put(dataObject);
+        }
+        jsonObject.put("epsRatios", epsArray);
+
+        JSONArray pfcfArray = new JSONArray();
+        for (RatioData data : pfcfRatios) {
+            JSONObject dataObject = new JSONObject();
+            dataObject.put("date", data.getDate());
+            dataObject.put("value", Math.max(Math.min(data.getValue(), 50), -50)); // Cap values between -30 and 30
+            pfcfArray.put(dataObject);
+        }
+        jsonObject.put("pfcfRatios", pfcfArray);
 
         try (FileWriter file = new FileWriter("CompanyOverview.json")) {
             file.write(jsonObject.toString());
