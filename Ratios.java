@@ -14,49 +14,49 @@ public class Ratios {
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
 
-    public static List<RatioData> fetchHistoricalPE(String ticker) {
-        List<RatioData> peRatios = new ArrayList<>();
-        try {
-            URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=quarter&apikey=" + API_KEY);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+   public static List<RatioData> fetchHistoricalPE(String ticker) {
+    List<RatioData> peRatios = new ArrayList<>();
+    try {
+        URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=annual&apikey=" + API_KEY);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
 
-            int responseCode = conn.getResponseCode();
-            System.out.println("PE API Response Code: " + responseCode);  // Debugging statement
+        int responseCode = conn.getResponseCode();
+        System.out.println("PE API Response Code: " + responseCode);  // Debugging statement
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String inputLine;
-            StringBuilder content = new StringBuilder();
-            while ((inputLine = in.readLine()) != null) {
-                content.append(inputLine);
-            }
-
-            in.close();
-            conn.disconnect();
-
-            System.out.println("PE API Response: " + content.toString());  // Debugging statement
-
-            JSONArray jsonArray = new JSONArray(content.toString());
-            if (jsonArray.length() == 0) {
-                System.out.println("No historical PE data available for ticker: " + ticker);
-            } else {
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    String date = jsonObject.getString("date");
-                    double pe = jsonObject.getDouble("priceEarningsRatio");
-                    peRatios.add(new RatioData(date, pe));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        String inputLine;
+        StringBuilder content = new StringBuilder();
+        while ((inputLine = in.readLine()) != null) {
+            content.append(inputLine);
         }
-        return peRatios;
+
+        in.close();
+        conn.disconnect();
+
+        System.out.println("PE API Response: " + content.toString());  // Debugging statement
+
+        JSONArray jsonArray = new JSONArray(content.toString());
+        if (jsonArray.length() == 0) {
+            System.out.println("No historical PE data available for ticker: " + ticker);
+        } else {
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                String date = jsonObject.getString("date");
+                double pe = jsonObject.getDouble("priceEarningsRatio");
+                peRatios.add(new RatioData(date, pe));
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    return peRatios;
+}
 
     public static List<RatioData> fetchHistoricalPB(String ticker) {
         List<RatioData> pbRatios = new ArrayList<>();
         try {
-            URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=quarter&apikey=" + API_KEY);
+            URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=annual&apikey=" + API_KEY);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -95,7 +95,7 @@ public class Ratios {
     public static List<RatioData> fetchQuarterlyEPS(String ticker) {
         List<RatioData> epsRatios = new ArrayList<>();
         try {
-            URL url = new URL("https://financialmodelingprep.com/api/v3/income-statement/" + ticker + "?period=quarter&apikey=" + API_KEY);
+            URL url = new URL("https://financialmodelingprep.com/api/v3/income-statement/" + ticker + "?period=annual&apikey=" + API_KEY);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -129,6 +129,46 @@ public class Ratios {
             e.printStackTrace();
         }
         return epsRatios;
+    }
+
+    // New method to fetch historical priceToFreeCashFlowsRatio
+    public static List<RatioData> fetchHistoricalPFCF(String ticker) {
+        List<RatioData> pfcfRatios = new ArrayList<>();
+        try {
+            URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=annual&apikey=" + API_KEY);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("PFCF API Response Code: " + responseCode);  // Debugging statement
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+
+            in.close();
+            conn.disconnect();
+
+            System.out.println("PFCF API Response: " + content.toString());  // Debugging statement
+
+            JSONArray jsonArray = new JSONArray(content.toString());
+            if (jsonArray.length() == 0) {
+                System.out.println("No historical PFCF data available for ticker: " + ticker);
+            } else {
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String date = jsonObject.getString("date");
+                    double pfcf = jsonObject.getDouble("priceToFreeCashFlowsRatio");
+                    pfcfRatios.add(new RatioData(date, pfcf));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return pfcfRatios;
     }
 }
 
