@@ -25,6 +25,9 @@ import javax.swing.JProgressBar;
 import javax.swing.BorderFactory;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import java.awt.Color;
 
 public class Watchlist {
     private JTable watchlistTable;
@@ -43,6 +46,32 @@ public class Watchlist {
     }
 
     public void createAndShowGUI() {
+        
+        
+        // Set Nimbus Look and Feel before creating any GUI components
+    try {
+        for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            if ("Nimbus".equals(info.getName())) {
+                UIManager.setLookAndFeel(info.getClassName());
+                // Customize some Nimbus defaults if desired
+                UIManager.put("control", new Color(240, 240, 240));
+                UIManager.put("info", new Color(242, 242, 189));
+                UIManager.put("nimbusBase", new Color(51, 98, 140));
+                UIManager.put("nimbusBlueGrey", new Color(169, 176, 190));
+                UIManager.put("nimbusSelectionBackground", new Color(104, 93, 156));
+                break;
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        // Fall back to system look and feel if Nimbus isn't available
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+        
         JFrame frame = new JFrame("Watchlist");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setSize(1000, 600);
