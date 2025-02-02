@@ -931,8 +931,10 @@ public class Watchlist {
     return count > 0 ? round(sum / count, 2) : 0.0;
 }
 
-    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm,
-                               double payoutRatio, Object debtToEquity, double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double epsGrowth3, double currentRatio, double quickRatio) {
+    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, Object debtToEquity,
+                                   double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
+                                   double currentRatio, double quickRatio) 
+    {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
     double payoutRatioTerm = 0;
