@@ -84,7 +84,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3"
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg"
         }, 0) {
             
 
@@ -111,6 +111,7 @@ public class Watchlist {
                     case 19:
                     case 20:
                     case 21:
+                    case 22:
                         return Double.class;
                     default:
                         return String.class;
@@ -312,6 +313,7 @@ public class Watchlist {
                         jsonObject.optDouble("quickRatio",   0.0),
                         jsonObject.optDouble("epsGrowth2", 0.0),
                         jsonObject.optDouble("epsGrowth3", 0.0), 
+                        jsonObject.optDouble("deAvg", 0.0),
                         
                         
                     };
@@ -360,6 +362,7 @@ public class Watchlist {
             jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
             jsonObject.put("epsGrowth2", tableModel.getValueAt(i, 20));
             jsonObject.put("epsGrowth3", tableModel.getValueAt(i, 21));
+            jsonObject.put("deAvg", tableModel.getValueAt(i, 22));
             jsonArray.put(jsonObject);
         }
 
@@ -557,11 +560,12 @@ public class Watchlist {
             double quickRatio = ratios.optDouble("quickRatioTTM", 0.0);
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+            double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
-                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2, epsGrowth3,
+                epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2, epsGrowth3, deAvg,
             };
 
             tableModel.addRow(rowData);
@@ -652,6 +656,7 @@ public class Watchlist {
                             Object debtToEquity = ratios.has("debtToEquityTTM") 
                                 ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) 
                                 : "n/a";
+                            double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
 
                             double epsCurrentYear = epsEstimates != null 
                                 ? round(epsEstimates.optDouble("eps0", 0.0), 2) 
@@ -674,7 +679,7 @@ public class Watchlist {
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -699,6 +704,7 @@ public class Watchlist {
                                 tableModel.setValueAt(quickRatio,  modelRow, 19); // Index of the new "Quick Ratio" column
                                 tableModel.setValueAt(epsGrowth2, modelRow, 20);
                                 tableModel.setValueAt(epsGrowth3, modelRow, 21);
+                                tableModel.setValueAt(deAvg, modelRow, 22);
                                 
                             });
 
@@ -932,7 +938,7 @@ public class Watchlist {
 }
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, Object debtToEquity,
-                                   double roe, double dividendYield, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
+                                   double roe, double dividendYield, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
                                    double currentRatio, double quickRatio) 
     {
     double peRatioTerm = 0;
@@ -940,6 +946,7 @@ public class Watchlist {
     double payoutRatioTerm = 0;
     double dividendYieldTerm = 0;
     double debtToEquityTerm = 0;
+    double deAvgTerm = 0;
     double roeTerm = 0;
     double epsGrowth1Term =0;
     double epsGrowth2Term =0;
@@ -1061,8 +1068,26 @@ public class Watchlist {
     } else if (quickRatio >= 2) {
         quickRatioTerm  = 2;
     }
-
-    return peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm + roeTerm + dividendYieldTerm + 2*(epsGrowth1Term + epsGrowth2Term + epsGrowth3Term) + currentRatioTerm + quickRatioTerm;
+    
+      // Conditions for deAvg/debtToEquity
+    
+if (debtToEquity.equals("n/a") || deAvg == 0.0) {
+    deAvgTerm = 0;
+} else {
+    double ratio = ((double)debtToEquity) / deAvg;
+    System.out.println("Ratio debtToEquity/deAvg: " + ratio); // Per debug
+    
+    if (ratio <= 0) {
+        deAvgTerm = 0;
+    } else if (ratio > 0 && ratio <= 0.5) {
+        deAvgTerm = 2;
+    } else if (ratio > 0.5 && ratio <= 1) {
+        deAvgTerm = 1;
+    } else { // ratio > 1
+        deAvgTerm = 0;
+    }
+}
+    return 0*(peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm) + 0*deAvgTerm + 0*( roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm);
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
