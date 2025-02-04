@@ -84,7 +84,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg"
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg",
         }, 0) {
             
 
@@ -974,17 +974,18 @@ public class Watchlist {
         pbRatioTerm = 2;
     }
 
-    // Conditions for dividendYielsTerm
-    if (dividendYield < 0.03) {
+    // Conditions for dividendYieldTerm
+// Conditions for dividendYieldTerm
+    if (dividendYield < 0.05) {
         dividendYieldTerm = 0;
-    } else if ((dividendYield >= 0.03)&& (dividendYield < 0.05)){
+    
+    } else {  // Changed to else to ensure we catch all cases
         dividendYieldTerm = 1;
-    } else if (dividendYield >= 0.05) {
-        dividendYieldTerm = 2;
     }
+
     
     // Conditions for payoutRatioTerm
-      if (payoutRatio <= 0 || payoutRatio >= 1 || dividendYield < 0.03 ) {
+      if (payoutRatio <= 0 || payoutRatio >= 1) {
         payoutRatioTerm = 0;
     } else if (payoutRatio >= 0.5 && payoutRatio < 1) {
         payoutRatioTerm = 1;
@@ -1087,7 +1088,7 @@ if (debtToEquity.equals("n/a") || deAvg == 0.0) {
         deAvgTerm = 0;
     }
 }
-    return 0*(peRatioTerm + pbRatioTerm + payoutRatioTerm + debtToEquityTerm) + 0*deAvgTerm + 0*( roeTerm + dividendYieldTerm + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm);
+    return 0*(peRatioTerm + pbRatioTerm  + debtToEquityTerm + deAvgTerm)+ 1*dividendYieldTerm + 0*payoutRatioTerm + 0*(roeTerm  + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm);
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
