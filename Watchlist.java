@@ -1092,7 +1092,7 @@ if (debtToEquity.equals("n/a") || deAvg == 0.0) {
         deAvgTerm = 0;
     }
 }
-    return peRatioTerm + pbRatioTerm  + debtToEquityTerm + deAvgTerm + dividendYieldTerm + payoutRatioTerm + roeTerm  + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm;
+    return 0*(peRatioTerm + pbRatioTerm  + debtToEquityTerm + deAvgTerm + payoutRatioTerm + roeTerm  + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm) + dividendYieldTerm;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
