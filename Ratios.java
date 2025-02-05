@@ -52,6 +52,8 @@ public class Ratios {
         }
         return peRatios;
     }
+    
+    
 
     public static List<RatioData> fetchHistoricalPB(String ticker) {
         List<RatioData> pbRatios = new ArrayList<>();
@@ -210,6 +212,36 @@ public class Ratios {
         }
         return debtToEquityRatios;
     }
+    
+    public static double fetchDebtToEquityAverage(String ticker) {
+    List<RatioData> debtToEquityRatios = fetchHistoricalDebtToEquity(ticker);
+    
+    if (debtToEquityRatios.isEmpty()) {
+        return 0.0;
+    }
+
+    double sum = 0;
+    int count = 0;
+    
+    for (RatioData ratio : debtToEquityRatios) {
+        double value = ratio.getValue();
+        if (value != 0) {
+            value = Math.min(Math.max(value, -3.0), 3.0); // Cap between -3 and 3
+            sum += value;
+            count++;
+        }
+    }
+    
+    return count > 0 ? round(sum / count, 2) : 0.0;
+}
+
+private static double round(double value, int places) {
+    if (places < 0) throw new IllegalArgumentException();
+    long factor = (long) Math.pow(10, places);
+    value = value * factor;
+    long tmp = Math.round(value);
+    return (double) tmp / factor;
+}
 }
 
 class RatioData {

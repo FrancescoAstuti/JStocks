@@ -80,7 +80,7 @@ public class Watchlist {
 
         String[] dynamicColumnNames = getDynamicColumnNames();
         tableModel = new DefaultTableModel(new Object[]{
-            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield",
+            "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield %",
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
@@ -230,17 +230,15 @@ public class Watchlist {
         JButton addButton = new JButton("Add Stock");
         JButton deleteButton = new JButton("Delete Stock");
         JButton refreshButton = new JButton("Refresh");
-        JButton importButton = new JButton("Import From FMP");
-
+        
         addButton.addActionListener(e -> addStock());
         deleteButton.addActionListener(e -> deleteStock());
         refreshButton.addActionListener(e -> refreshWatchlist());
-        importButton.addActionListener(e -> importTickersFromFMP());
-        
+              
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
-         buttonPanel.add(importButton);
+        
     }
 
     private void toggleColumnVisibility(String columnName, boolean visible) {
@@ -976,17 +974,12 @@ public class Watchlist {
 
     // Conditions for dividendYieldTerm
 // Conditions for dividendYieldTerm
-if (payoutRatio <= 0) {
-    dividendYieldTerm = 0;
-} else {
-    if (dividendYieldTTM < 0.03) {
+
+    if (dividendYieldTTM < 3) {
         dividendYieldTerm = 0;
-    } else if (dividendYieldTTM >= 0.03 && dividendYieldTTM < 0.05) {
+    } else {
         dividendYieldTerm = 1;
-    } else {  // Changed to else to ensure we catch all cases
-        dividendYieldTerm = 2;
     }
-}
     
     // Conditions for payoutRatioTerm
       if (payoutRatio <= 0 || payoutRatio >= 1) {
@@ -1056,7 +1049,7 @@ if (payoutRatio <= 0) {
         epsGrowth3Term = 2;
     }
     
-    // Conditions for current ratio1
+    // Conditions for current ratio
     if (currentRatio < 1) {
         currentRatioTerm = 0;
     } else if (currentRatio >= 1 && currentRatio < 2) {
@@ -1092,225 +1085,14 @@ if (debtToEquity.equals("n/a") || deAvg == 0.0) {
         deAvgTerm = 0;
     }
 }
-    return 0*(peRatioTerm + pbRatioTerm  + debtToEquityTerm + deAvgTerm + payoutRatioTerm + roeTerm  + epsGrowth1Term + epsGrowth2Term + epsGrowth3Term + currentRatioTerm + quickRatioTerm) + dividendYieldTerm;
+   /*Working*/ return (peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )  /*Not Working + roeTerm + 0*(dividendYieldTerm   
+              + deAvgTerm)*/ ;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
     
-   private void importTickersFromFMP() {
-    try {
-        String urlString = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + API_KEY;
-        URL url = new URL(urlString);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        
-        int responseCode = connection.getResponseCode();
-        if (responseCode == 200) {
-            Scanner scanner = new Scanner(url.openStream());
-            String response = scanner.useDelimiter("\\Z").next();
-            scanner.close();
-            
-            JSONArray stocksArray = new JSONArray(response);
-            
-            // Create and show ticker selection dialog
-            JDialog dialog = new JDialog((Frame)null, "Select Tickers to Import", true);
-            dialog.setLayout(new BorderLayout());
-            
-            // Create a panel with a search field and list
-            JPanel panel = new JPanel(new BorderLayout());
-            JTextField searchField = new JTextField(20);
-            JList<String> tickerList = new JList<String>();
-            DefaultListModel<String> listModel = new DefaultListModel<>();
-            
-            // Populate the list model with ticker symbols
-            for (int i = 0; i < stocksArray.length(); i++) {
-                JSONObject stock = stocksArray.getJSONObject(i);
-                String ticker = stock.optString("symbol", "");
-                String name = stock.optString("name", "");
-                String exchange = stock.optString("exchange", "");
-                
-                // Skip if any required field is empty
-                if (ticker.isEmpty() || name.isEmpty()) {
-                    continue;
-                }
 
-                // Create display string with exchange info if available
-                String displayString = exchange.isEmpty() ? 
-                    String.format("%s - %s", ticker, name) :
-                    String.format("%s - %s (%s)", ticker, name, exchange);
-                
-                listModel.addElement(displayString);
-            }
-            
-            tickerList.setModel(listModel);
-            tickerList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-            
-            // Add search functionality
-            searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-                public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-                public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-                public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-                
-                private void filter() {
-                    String searchText = searchField.getText().toLowerCase();
-                    DefaultListModel<String> filteredModel = new DefaultListModel<>();
-                    
-                    for (int i = 0; i < listModel.getSize(); i++) {
-                        String element = listModel.getElementAt(i);
-                        if (element.toLowerCase().contains(searchText)) {
-                            filteredModel.addElement(element);
-                        }
-                    }
-                    tickerList.setModel(filteredModel);
-                }
-            });
-            
-            // Add components to panel
-            JPanel searchPanel = new JPanel(new BorderLayout());
-            searchPanel.add(new JLabel("Search: "), BorderLayout.WEST);
-            searchPanel.add(searchField, BorderLayout.CENTER);
-            
-            panel.add(searchPanel, BorderLayout.NORTH);
-            panel.add(new JScrollPane(tickerList), BorderLayout.CENTER);
-            
-            // Add buttons
-            JPanel buttonPanel = new JPanel();
-            JButton importButton = new JButton("Import Selected");
-            JButton cancelButton = new JButton("Cancel");
-            
-            importButton.addActionListener(e -> {
-                List<String> selectedItems = tickerList.getSelectedValuesList();
-                dialog.dispose();
-                
-                if (!selectedItems.isEmpty()) {
-                    importSelectedTickers(selectedItems);
-                }
-            });
-            
-            cancelButton.addActionListener(e -> dialog.dispose());
-            
-            buttonPanel.add(importButton);
-            buttonPanel.add(cancelButton);
-            
-            dialog.add(panel, BorderLayout.CENTER);
-            dialog.add(buttonPanel, BorderLayout.SOUTH);
-            dialog.setSize(500, 600);
-            dialog.setLocationRelativeTo(null);
-            dialog.setVisible(true);
-            
-        } else {
-            JOptionPane.showMessageDialog(null,
-                "Error fetching ticker list. Response code: " + responseCode,
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
-        }
-    } catch (Exception e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(null,
-            "Error fetching ticker list: " + e.getMessage(),
-            "Error",
-            JOptionPane.ERROR_MESSAGE);
-    }
-}
-
-   private void importSelectedTickers(List<String> selectedItems) {
-    // Create a progress dialog
-    JDialog progressDialog = new JDialog((Frame)null, "Importing Tickers", true);
-    progressDialog.setLayout(new BorderLayout());
-    
-    JProgressBar progressBar = new JProgressBar(0, selectedItems.size());
-    JLabel statusLabel = new JLabel("Importing tickers...");
-    JPanel progressPanel = new JPanel(new BorderLayout(5, 5));
-    progressPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-    progressPanel.add(statusLabel, BorderLayout.NORTH);
-    progressPanel.add(progressBar, BorderLayout.CENTER);
-    
-    progressDialog.add(progressPanel);
-    progressDialog.setSize(300, 100);
-    progressDialog.setLocationRelativeTo(null);
-
-    SwingWorker<Void, Object[]> worker = new SwingWorker<Void, Object[]>() {
-        @Override
-        protected Void doInBackground() {
-            int count = 0;
-            for (String item : selectedItems) {
-                try {
-                    // Extract ticker from the selected item (format: "TICKER - Name (Exchange)")
-                    String ticker = item.split(" - ")[0];
-                    String name = item.split(" - ")[1].split(" \\(")[0];
-                    
-                    // Check if ticker already exists
-                    boolean tickerExists = false;
-                    for (int row = 0; row < tableModel.getRowCount(); row++) {
-                        if (tableModel.getValueAt(row, 1).equals(ticker)) {
-                            tickerExists = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!tickerExists) {
-                        // Create a row with just the name and ticker, all other values set to 0 or default
-                        Object[] rowData = new Object[tableModel.getColumnCount()];
-                        rowData[0] = name;  // Name
-                        rowData[1] = ticker; // Ticker
-                        // Fill remaining columns with 0 or default values
-                        for (int i = 2; i < rowData.length; i++) {
-                            if (i == 16) { // Debt to Equity column
-                                rowData[i] = "n/a";
-                            } else {
-                                rowData[i] = 0.0;
-                            }
-                        }
-                        publish(rowData);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                
-                count++;
-                final int currentCount = count;
-                final String currentTicker = item.split(" - ")[0];
-                SwingUtilities.invokeLater(() -> {
-                    progressBar.setValue(currentCount);
-                    statusLabel.setText("Importing: " + currentTicker + " (" + currentCount + "/" + selectedItems.size() + ")");
-                });
-            }
-            return null;
-        }
-
-        @Override
-        protected void process(List<Object[]> chunks) {
-            // Add each chunk of data to the table model
-            for (Object[] rowData : chunks) {
-                tableModel.addRow(rowData);
-            }
-            // Save after each batch of updates
-            saveWatchlist();
-        }
-
-        @Override
-        protected void done() {
-            progressDialog.dispose();
-            saveWatchlist();
-            
-            // Ask user if they want to refresh the data now
-            int response = JOptionPane.showConfirmDialog(null,
-                "Tickers imported successfully! Do you want to refresh the data now?",
-                "Import Complete",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-                
-            if (response == JOptionPane.YES_OPTION) {
-                refreshWatchlist();
-            }
-        }
-    };
-
-    // Start the worker and show the progress dialog
-    worker.execute();
-    progressDialog.setVisible(true);
-}
 
    public class CustomCellRenderer extends DefaultTableCellRenderer {
     private final Color LIGHT_RED = new Color(255, 235, 235);

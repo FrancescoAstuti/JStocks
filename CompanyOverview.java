@@ -18,10 +18,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -33,8 +37,48 @@ public class CompanyOverview {
     private static final Color TITLE_COLOR = new Color(44, 62, 80);
     private static final Color LABEL_COLOR = new Color(52, 73, 94);
     private static final Color MARKER_LINE_COLOR = new Color(231, 76, 60);
+    private static final Color TTM_LINE_COLOR = new Color(46, 204, 113);
     private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 16);
     private static final Font LABEL_FONT = new Font("Segoe UI", Font.PLAIN, 12);
+
+private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
+    Map<String, Double> ttmValues = new HashMap<>();
+    try {
+        String jsonContent = new String(Files.readAllBytes(Paths.get("data/watchlist.json")));
+        JSONObject watchlist = new JSONObject(jsonContent);
+        JSONArray stocks = watchlist.getJSONArray("stocks");
+
+        System.out.println("Looking for TTM values for ticker: " + ticker); // Debug print
+
+        for (int i = 0; i < stocks.length(); i++) {
+            JSONObject stock = stocks.getJSONObject(i);
+            if (stock.getString("ticker").equals(ticker)) {
+                ttmValues.put("peTTM", stock.getDouble("peTTM"));
+                ttmValues.put("pbTTM", stock.getDouble("pbTTM"));
+                ttmValues.put("epsTTM", stock.getDouble("epsTTM"));
+                ttmValues.put("pfcfTTM", stock.getDouble("pfcfTTM"));
+                ttmValues.put("debtToEquityTTM", stock.getDouble("debtToEquity"));
+                
+                // Debug prints
+                System.out.println("Found TTM values:");
+                System.out.println("PE TTM: " + ttmValues.get("peTTM"));
+                System.out.println("PB TTM: " + ttmValues.get("pbTTM"));
+                System.out.println("EPS TTM: " + ttmValues.get("epsTTM"));
+                System.out.println("PFCF TTM: " + ttmValues.get("pfcfTTM"));
+                System.out.println("Debt to Equity TTM: " + ttmValues.get("debtToEquityTTM"));
+                break;
+            }
+        }
+        
+        if (ttmValues.isEmpty()) {
+            System.out.println("No TTM values found for ticker: " + ticker); // Debug print
+        }
+    } catch (Exception e) {
+        System.out.println("Error reading watchlist.json: " + e.getMessage()); // Debug print
+        e.printStackTrace();
+    }
+    return ttmValues;
+}
 
     public static void showCompanyOverview(String ticker, String companyName) {
         try {
@@ -52,6 +96,7 @@ public class CompanyOverview {
         titleLabel.setFont(TITLE_FONT);
         titleLabel.setForeground(TITLE_COLOR);
         panel.add(titleLabel, BorderLayout.NORTH);
+
         // Fetch historical data
         List<RatioData> peRatios = Ratios.fetchHistoricalPE(ticker);
         List<RatioData> pbRatios = Ratios.fetchHistoricalPB(ticker);
@@ -82,6 +127,8 @@ public class CompanyOverview {
         double debtToEquityAverage = calculateAverage(debtToEquityRatios.stream()
                 .map(RatioData::getValue).collect(Collectors.toList()));
 
+        // Get TTM values from watchlist
+        Map<String, Double> ttmValues = getTTMValuesFromWatchlist(ticker);
         // Create datasets
         DefaultCategoryDataset peDataset = createDataset(peRatios, "PE Ratio", -40.0, 40.0);
         DefaultCategoryDataset pbDataset = createDataset(pbRatios, "PB Ratio", -10.0, 10.0);
@@ -90,19 +137,29 @@ public class CompanyOverview {
         DefaultCategoryDataset debtToEquityDataset = createDataset(debtToEquityRatios, "Debt to Equity Ratio", null, null);
 
         // Create charts
-        JFreeChart peChart = createStyledChart("Quarterly PE Ratios", "Date", "PE Ratio", peDataset);
-        JFreeChart pbChart = createStyledChart("Quarterly PB Ratios", "Date", "PB Ratio", pbDataset);
-        JFreeChart epsChart = createStyledChart("Quarterly EPS", "Date", "EPS", epsDataset);
-        JFreeChart pfcfChart = createStyledChart("Quarterly PFCF Ratios", "Date", "PFCF Ratio", pfcfDataset);
-        JFreeChart debtToEquityChart = createStyledChart("Quarterly Debt to Equity Ratios", 
+        JFreeChart peChart = createStyledChart("PE Ratio", "Date", "PE Ratio", peDataset);
+        JFreeChart pbChart = createStyledChart("PB Ratio", "Date", "PB Ratio", pbDataset);
+        JFreeChart epsChart = createStyledChart("EPS", "Date", "EPS", epsDataset);
+        JFreeChart pfcfChart = createStyledChart("PFCF Ratio", "Date", "PFCF Ratio", pfcfDataset);
+        JFreeChart debtToEquityChart = createStyledChart("Debt to Equity", 
                 "Date", "Debt to Equity Ratio", debtToEquityDataset);
 
-        // Add markers
-        addMarker(peChart, peAverage, "Average PE");
-        addMarker(pbChart, pbAverage, "Average PB");
-        addMarker(epsChart, epsAverage, "Average EPS");
-        addMarker(pfcfChart, pfcfAverage, "Average PFCF");
-        addMarker(debtToEquityChart, debtToEquityAverage, "Average Debt to Equity");
+        // Add markers for averages and TTM values
+        addMarker(peChart, peAverage, "Average PE", MARKER_LINE_COLOR);
+        addMarker(peChart, ttmValues.getOrDefault("peTTM", Double.NaN), "TTM PE", TTM_LINE_COLOR);
+
+        addMarker(pbChart, pbAverage, "Average PB", MARKER_LINE_COLOR);
+        addMarker(pbChart, ttmValues.getOrDefault("pbTTM", Double.NaN), "TTM PB", TTM_LINE_COLOR);
+
+        addMarker(epsChart, epsAverage, "Average EPS", MARKER_LINE_COLOR);
+        addMarker(epsChart, ttmValues.getOrDefault("epsTTM", Double.NaN), "TTM EPS", TTM_LINE_COLOR);
+
+        addMarker(pfcfChart, pfcfAverage, "Average PFCF", MARKER_LINE_COLOR);
+        addMarker(pfcfChart, ttmValues.getOrDefault("pfcfTTM", Double.NaN), "TTM PFCF", TTM_LINE_COLOR);
+
+        addMarker(debtToEquityChart, debtToEquityAverage, "Average Debt to Equity", MARKER_LINE_COLOR);
+        addMarker(debtToEquityChart, ttmValues.getOrDefault("debtToEquityTTM", Double.NaN), 
+                "TTM Debt to Equity", TTM_LINE_COLOR);
 
         // Setup panel for charts
         JPanel chartsPanel = new JPanel(new GridLayout(5, 1, 0, 10));
@@ -133,6 +190,7 @@ public class CompanyOverview {
         saveDataToFile(ticker, peRatios, pbRatios, epsRatios, pfcfRatios, debtToEquityRatios,
                 peAverage, pbAverage, epsAverage, pfcfAverage, debtToEquityAverage);
     }
+
     private static List<RatioData> filterAndSortRatios(List<RatioData> ratios, LocalDate timeRange, 
             DateTimeFormatter formatter) {
         return ratios.stream()
@@ -173,7 +231,6 @@ public class CompanyOverview {
         }
         return dataset;
     }
-
     private static JFreeChart createStyledChart(String title, String xLabel, String yLabel, 
             DefaultCategoryDataset dataset) {
         JFreeChart chart = ChartFactory.createBarChart(
@@ -227,6 +284,24 @@ public class CompanyOverview {
         chart.getLegend().setBackgroundPaint(BACKGROUND_COLOR);
     }
 
+   private static void addMarker(JFreeChart chart, double value, String label, Color color) {
+    System.out.println("Adding marker: " + label + " with value: " + value); // Debug print
+    if (!Double.isNaN(value)) {
+        ValueMarker marker = new ValueMarker(value);
+        marker.setLabel(String.format("%s: %.2f", label, value));
+        marker.setLabelAnchor(RectangleAnchor.TOP_RIGHT);
+        marker.setLabelTextAnchor(TextAnchor.BOTTOM_RIGHT);
+        marker.setLabelFont(LABEL_FONT);
+        marker.setPaint(color);
+        marker.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 
+                1.0f, new float[] {2.0f, 2.0f}, 0.0f));
+        chart.getCategoryPlot().addRangeMarker(marker, Layer.FOREGROUND);
+        System.out.println("Marker added successfully"); // Debug print
+    } else {
+        System.out.println("Skipping marker due to NaN value"); // Debug print
+    }
+}
+
     private static void addChartToPanel(JPanel panel, JFreeChart chart) {
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(1100, 400));
@@ -235,18 +310,6 @@ public class CompanyOverview {
             BorderFactory.createLineBorder(GRID_LINE_COLOR)
         ));
         panel.add(chartPanel);
-    }
-
-    private static void addMarker(JFreeChart chart, double value, String label) {
-        ValueMarker marker = new ValueMarker(value);
-        marker.setLabel(String.format("%s: %.2f", label, value));
-        marker.setLabelAnchor(RectangleAnchor.TOP_RIGHT);
-        marker.setLabelTextAnchor(TextAnchor.BOTTOM_RIGHT);
-        marker.setLabelFont(LABEL_FONT);
-        marker.setPaint(MARKER_LINE_COLOR);
-        marker.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 
-                1.0f, new float[] {2.0f, 2.0f}, 0.0f));
-        chart.getCategoryPlot().addRangeMarker(marker, Layer.FOREGROUND);
     }
 
     private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios,
