@@ -11,10 +11,11 @@ import java.math.RoundingMode;
 
 public class KeyMetricsTTM {
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
-    private static final String API_URL = "https://financialmodelingprep.com/api/v3/key-metrics-ttm/";
+    private static final String API_URL_RatiosTTM = "https://financialmodelingprep.com/api/v3/ratios-ttm/";
+    private static final String API_URL_KeyMetricsTTM = "https://financialmodelingprep.com/api/v3/key-metrics-ttm";
 
     public static String getEPSTTM(String ticker) throws IOException {
-        String urlString = API_URL + ticker + "?apikey=" + API_KEY;
+        String urlString = API_URL_KeyMetricsTTM + ticker + "?apikey=" + API_KEY;
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -48,7 +49,7 @@ public class KeyMetricsTTM {
     }
 
     public static String getROETTM(String ticker) throws IOException {
-        String urlString = API_URL + ticker + "?apikey=" + API_KEY;
+        String urlString = API_URL_KeyMetricsTTM + ticker + "?apikey=" + API_KEY;
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -82,7 +83,7 @@ public class KeyMetricsTTM {
     }
 
 public static double getDividendYieldTTM(String ticker) throws IOException {
-    String urlString = API_URL + ticker + "?apikey=" + API_KEY;
+    String urlString = API_URL_KeyMetricsTTM + ticker + "?apikey=" + API_KEY;
     URL url = new URL(urlString);
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("GET");
