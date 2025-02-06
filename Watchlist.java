@@ -213,18 +213,29 @@ public class Watchlist {
         });
     }
 
-    private void setupColumnControlPanel() {
-        columnControlPanel = new JPanel();
-        columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
+  private void setupColumnControlPanel() {
+    columnControlPanel = new JPanel();
+    columnControlPanel.setLayout(new BoxLayout(columnControlPanel, BoxLayout.Y_AXIS));
 
-        TableColumnModel columnModel = watchlistTable.getColumnModel();
-        for (int i = 0; i < columnModel.getColumnCount(); i++) {
-            JCheckBox checkBox = new JCheckBox(tableModel.getColumnName(i), true);
-            final String columnName = tableModel.getColumnName(i);
-            checkBox.addActionListener(e -> toggleColumnVisibility(columnName, checkBox.isSelected()));
-            columnControlPanel.add(checkBox);
-        }
+    TableColumnModel columnModel = watchlistTable.getColumnModel();
+    List<JCheckBox> checkBoxes = new ArrayList<>();
+
+    // Create checkboxes for each column and add them to the list
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        String columnName = tableModel.getColumnName(i);
+        JCheckBox checkBox = new JCheckBox(columnName, true);
+        checkBox.addActionListener(e -> toggleColumnVisibility(columnName, checkBox.isSelected()));
+        checkBoxes.add(checkBox);
     }
+
+    // Sort checkboxes alphabetically by their text
+    checkBoxes.sort(Comparator.comparing(JCheckBox::getText));
+
+    // Add sorted checkboxes to the panel
+    for (JCheckBox checkBox : checkBoxes) {
+        columnControlPanel.add(checkBox);
+    }
+}
 
     private void setupButtonPanel(JPanel buttonPanel) {
         JButton addButton = new JButton("Add Stock");
@@ -1085,8 +1096,8 @@ if (debtToEquity.equals("n/a") || deAvg == 0.0) {
         deAvgTerm = 0;
     }
 }
-   /*Working*/ return (peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )  /*Not Working + roeTerm + 0*(dividendYieldTerm   
-              + deAvgTerm)*/ ;
+   /*Working*/ return (peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )  /*Not Working + roeTerm + dividendYieldTerm   
+              + deAvgTerm*/ ;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
