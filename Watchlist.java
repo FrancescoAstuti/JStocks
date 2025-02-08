@@ -291,14 +291,8 @@ public class Watchlist {
 
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObject = jsonArray.getJSONObject(i);
-                    Object debtToEquity;
-                    if (jsonObject.opt("debtToEquity") instanceof String &&
-                        jsonObject.optString("debtToEquity").equals("n/a")) {
-                        debtToEquity = "n/a";
-                    } else {
-                        debtToEquity = jsonObject.optDouble("debtToEquity", 0.0);
-                    }
-
+                   
+                    
                     Object[] rowData = new Object[]{
                         jsonObject.optString("name", ""),
                         jsonObject.optString("ticker", "").toUpperCase(),
@@ -316,7 +310,7 @@ public class Watchlist {
                         jsonObject.optDouble("epsCurrentYear", 0.0),
                         jsonObject.optDouble("epsNextYear", 0.0),
                         jsonObject.optDouble("epsYear3", 0.0),
-                        debtToEquity,
+                        jsonObject.optDouble("debtToEquity", 0.0),
                         jsonObject.optDouble("epsGrowth1", 0.0),
                         jsonObject.optDouble("currentRatio", 0.0),
                         jsonObject.optDouble("quickRatio",   0.0),
@@ -551,7 +545,7 @@ public class Watchlist {
             double price = stockData.getDouble("price");
             double peTtm = ratios.optDouble("peRatioTTM", 0.0);
             double pbTtm = ratios.optDouble("pbRatioTTM", 0.0);
-            double dividendYield = KeyMetricsTTM.getDividendYieldTTM(ticker);
+            double dividendYieldTTM = KeyMetricsTTM.getDividendYieldTTM(ticker);
             double payoutRatio = ratios.optDouble("payoutRatioTTM", 0.0);
             double grahamNumber = ratios.optDouble("grahamNumberTTM", 0.0);
             double pbAvg = fetchAveragePB(ticker);
@@ -561,19 +555,17 @@ public class Watchlist {
             double epsCurrentYear = ratios.optDouble("epsCurrentYear", 0.0);
             double epsNextYear = ratios.optDouble("epsNextYear", 0.0);
             double epsYear3 = ratios.optDouble("epsYear3", 0.0);
-            Object debtToEquity = ratios.has("debtToEquityTTM") 
-                ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) 
-                : "n/a";
+            double debtToEquity = KeyMetricsTTM.getDebtToEquityTTM(ticker);
             double epsGrowth1 = calculateEpsGrowth1(epsCurrentYear, epsTtm);
             double currentRatio = ratios.optDouble("currentRatioTTM", 0.0);
             double quickRatio = ratios.optDouble("quickRatioTTM", 0.0);
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYield, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
-                name, ticker, price, peTtm, pbTtm, dividendYield, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
+                name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
                 epsCurrentYear, epsNextYear, epsYear3, debtToEquity, epsGrowth1, currentRatio, quickRatio, epsGrowth2, epsGrowth3, deAvg,
             };
 
@@ -662,9 +654,7 @@ public class Watchlist {
                             double dividendYieldTTM = KeyMetricsTTM.getDividendYieldTTM(ticker);
                             double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                             double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
-                            Object debtToEquity = ratios.has("debtToEquityTTM") 
-                                ? round(ratios.optDouble("debtToEquityTTM", 0.0), 2) 
-                                : "n/a";
+                            double debtToEquity = KeyMetricsTTM.getDebtToEquityTTM(ticker);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
 
                             double epsCurrentYear = epsEstimates != null 
@@ -946,7 +936,7 @@ public class Watchlist {
     return count > 0 ? round(sum / count, 2) : 0.0;
 }
 
-    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, Object debtToEquity,
+    private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
                                    double roe, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
                                    double currentRatio, double quickRatio) 
     {
@@ -1002,7 +992,7 @@ public class Watchlist {
     }
 
     // Conditions for debtToEquityTerm
-    if (debtToEquity.equals("n/a") || (double) debtToEquity == 0 || (double) debtToEquity > 1) {
+    if (debtToEquity <= 0 || (double) debtToEquity > 1) {
         debtToEquityTerm = 0;
     } else if ((double) debtToEquity >= 0.5 && (double) debtToEquity <= 1) {
         debtToEquityTerm = 1;
@@ -1080,24 +1070,20 @@ public class Watchlist {
     
       // Conditions for deAvg/debtToEquity
     
-if (debtToEquity.equals("n/a") || deAvg == 0.0) {
+if (debtToEquity == 0 || deAvg == 0.0) {
     deAvgTerm = 0;
 } else {
-    double ratio = ((double)debtToEquity) / deAvg;
-    System.out.println("Ratio debtToEquity/deAvg: " + ratio); // Per debug
-    
-    if (ratio <= 0) {
+            
+    if ((deAvg/debtToEquity) < 1) {
         deAvgTerm = 0;
-    } else if (ratio > 0 && ratio <= 0.5) {
-        deAvgTerm = 2;
-    } else if (ratio > 0.5 && ratio <= 1) {
+    } else if ((deAvg/debtToEquity) >= 1 && (deAvg/debtToEquity) < 1.5) {
         deAvgTerm = 1;
-    } else { // ratio > 1
-        deAvgTerm = 0;
+    } else if ((deAvg/debtToEquity) >= 1.5)  {
+        deAvgTerm = deAvg;
     }
 }
-   /*Working*/ return (peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )  /*Not Working + roeTerm + dividendYieldTerm   
-              + deAvgTerm*/ ;
+   /*Working*/ return /*(peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )*/   deAvgTerm        /*Not Working + roeTerm + dividendYieldTerm   
+              */ ;
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
