@@ -32,7 +32,7 @@ import java.awt.Color;
 public class Watchlist {
     private JTable watchlistTable;
     private DefaultTableModel tableModel;
-    private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
+    private static final String API_KEY = "myAPIkey";
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
     private JPanel columnControlPanel;
 
