@@ -961,8 +961,8 @@ public class Watchlist {
 
 
 
-// Conditions for deAvg
-    if (debtToEquity == 0 || deAvg == 0.0) {
+// Conditions for debt to Equity
+  if (debtToEquity == 0 || deAvg == 0.0) {
         deAvgTerm = 0;
     } else {
         double ratio = deAvg / debtToEquity;
@@ -973,6 +973,7 @@ public class Watchlist {
         } else if (ratio >= 1.5) {
             deAvgTerm = 2;
         }
+    }
 
     // Conditions for peRatioTerm
     if (peTtm <= 0) {
@@ -1094,10 +1095,10 @@ public class Watchlist {
       // Conditions for deAvg/debtToEquity
     
  
-}
-      return payoutRatioTerm /*(deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm)*/; 
+
+    return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm); 
             
-    }
+    } 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
