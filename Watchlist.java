@@ -28,11 +28,14 @@ import java.awt.event.MouseEvent;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import java.awt.Color;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.FileOutputStream;
 
 public class Watchlist {
     private JTable watchlistTable;
     private DefaultTableModel tableModel;
-    private static final String API_KEY = "myAPIkey";
+    private static final String API_KEY = API_key.getApiKey();
     private static final String COLUMN_SETTINGS_FILE = "column_settings.properties";
     private JPanel columnControlPanel;
 
@@ -241,15 +244,17 @@ public class Watchlist {
         JButton addButton = new JButton("Add Stock");
         JButton deleteButton = new JButton("Delete Stock");
         JButton refreshButton = new JButton("Refresh");
+        JButton exportButton = new JButton("Export XLSX");
         
         addButton.addActionListener(e -> addStock());
         deleteButton.addActionListener(e -> deleteStock());
         refreshButton.addActionListener(e -> refreshWatchlist());
+        exportButton.addActionListener(e -> exportToExcel());
               
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
-        
+        buttonPanel.add(exportButton);
     }
 
     private void toggleColumnVisibility(String columnName, boolean visible) {
@@ -359,7 +364,7 @@ public class Watchlist {
             jsonObject.put("epsCurrentYear", tableModel.getValueAt(i, 13));
             jsonObject.put("epsNextYear", tableModel.getValueAt(i, 14));
             jsonObject.put("epsYear3", tableModel.getValueAt(i, 15));
-            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16).equals("n/a") ? "n/a" : tableModel.getValueAt(i, 16));
+            jsonObject.put("debtToEquity", tableModel.getValueAt(i, 16));
             jsonObject.put("epsGrowth1", tableModel.getValueAt(i, 17));
             jsonObject.put("currentRatio", tableModel.getValueAt(i, 18));
             jsonObject.put("quickRatio",   tableModel.getValueAt(i, 19));
@@ -562,7 +567,8 @@ public class Watchlist {
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg,
+                            roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
@@ -570,7 +576,7 @@ public class Watchlist {
             };
 
             tableModel.addRow(rowData);
-            System.out.println("Added stock: " + ticker + " with price: " + price);
+            System.out.println("Added stock: " + ticker + " deAvg" + deAvg );
 
             // Save the updated watchlist
             saveWatchlist();
@@ -655,8 +661,6 @@ public class Watchlist {
                             double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
                             double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
                             double debtToEquity = KeyMetricsTTM.getDebtToEquityTTM(ticker);
-                            double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
-
                             double epsCurrentYear = epsEstimates != null 
                                 ? round(epsEstimates.optDouble("eps0", 0.0), 2) 
                                 : 0.0;
@@ -678,7 +682,9 @@ public class Watchlist {
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+                            double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, 
+                                    currentRatio, quickRatio);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -953,6 +959,21 @@ public class Watchlist {
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
 
+
+
+// Conditions for deAvg
+    if (debtToEquity == 0 || deAvg == 0.0) {
+        deAvgTerm = 0;
+    } else {
+        double ratio = deAvg / debtToEquity;
+        if (ratio < 1) {
+            deAvgTerm = 0;
+        } else if (ratio >= 1 && ratio < 1.5) {
+            deAvgTerm = 1;
+        } else if (ratio >= 1.5) {
+            deAvgTerm = 2;
+        }
+
     // Conditions for peRatioTerm
     if (peTtm <= 0) {
         peRatioTerm = 0;
@@ -978,8 +999,10 @@ public class Watchlist {
 
     if (dividendYieldTTM < 3) {
         dividendYieldTerm = 0;
-    } else {
+    } else if (dividendYieldTTM >=3 && dividendYieldTTM <6 ) {
         dividendYieldTerm = 1;
+    }else if (dividendYieldTTM >=6) {
+        dividendYieldTerm = 2; 
     }
     
     // Conditions for payoutRatioTerm
@@ -1001,7 +1024,7 @@ public class Watchlist {
     }
     
     // Conditions for roe
-    if (roe <= 0.1) {
+    if (roe < 0.1) {
         roeTerm = 0;
     } else if (roe >= 0.1 && roe < 0.2) {
         roeTerm = 1;
@@ -1046,7 +1069,7 @@ public class Watchlist {
         epsGrowth3Term = 0;
     } else if (epsGrowth3 >= 25 && epsGrowth3 < 75) {
         epsGrowth3Term = 1;
-    } else if (epsGrowth2 >= 75) {
+    } else if (epsGrowth3 >= 75) {
         epsGrowth3Term = 2;
     }
     
@@ -1070,26 +1093,72 @@ public class Watchlist {
     
       // Conditions for deAvg/debtToEquity
     
-if (debtToEquity == 0 || deAvg == 0.0) {
-    deAvgTerm = 0;
-} else {
-            
-    if ((deAvg/debtToEquity) < 1) {
-        deAvgTerm = 0;
-    } else if ((deAvg/debtToEquity) >= 1 && (deAvg/debtToEquity) < 1.5) {
-        deAvgTerm = 1;
-    } else if ((deAvg/debtToEquity) >= 1.5)  {
-        deAvgTerm = deAvg;
-    }
+ 
 }
-   /*Working*/ return /*(peRatioTerm + pbRatioTerm + debtToEquityTerm + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm )*/   deAvgTerm        /*Not Working + roeTerm + dividendYieldTerm   
-              */ ;
+      return payoutRatioTerm /*(deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm)*/; 
+            
     }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Watchlist().createAndShowGUI());
     }
     
-
+private void exportToExcel() {
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Save Excel File");
+    fileChooser.setSelectedFile(new File("watchlist.xlsx"));
+    
+    if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
+        if (!file.getName().endsWith(".xlsx")) {
+            file = new File(file.getAbsolutePath() + ".xlsx");
+        }
+        
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Watchlist");
+            
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(tableModel.getColumnName(i));
+            }
+            
+            // Create data rows
+            for (int row = 0; row < tableModel.getRowCount(); row++) {
+                Row dataRow = sheet.createRow(row + 1);
+                for (int col = 0; col < tableModel.getColumnCount(); col++) {
+                    Object value = tableModel.getValueAt(row, col);
+                    Cell cell = dataRow.createCell(col);
+                    
+                    if (value instanceof Number) {
+                        cell.setCellValue(((Number) value).doubleValue());
+                    } else if (value != null) {
+                        cell.setCellValue(value.toString());
+                    }
+                }
+            }
+            
+            // Auto-size columns
+            for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // Write to file
+            try (FileOutputStream outputStream = new FileOutputStream(file)) {
+                workbook.write(outputStream);
+                JOptionPane.showMessageDialog(null,
+                    "Watchlist exported successfully!",
+                    "Export Complete",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error exporting file: " + e.getMessage(),
+                "Export Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
 
    public class CustomCellRenderer extends DefaultTableCellRenderer {
     private final Color LIGHT_RED = new Color(255, 235, 235);
