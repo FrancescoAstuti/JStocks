@@ -552,10 +552,10 @@ public class Watchlist {
             double pbTtm = ratios.optDouble("pbRatioTTM", 0.0);
             double dividendYieldTTM = KeyMetricsTTM.getDividendYieldTTM(ticker);
             double payoutRatio = ratios.optDouble("payoutRatioTTM", 0.0);
-            double grahamNumber = ratios.optDouble("grahamNumberTTM", 0.0);
             double pbAvg = fetchAveragePB(ticker);
             double peAvg = fetchAveragePE(ticker);
             double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
+            double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
             double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
             double epsCurrentYear = ratios.optDouble("epsCurrentYear", 0.0);
             double epsNextYear = ratios.optDouble("epsNextYear", 0.0);
@@ -659,7 +659,6 @@ public class Watchlist {
                             double roeTtm = round(ratios.optDouble("roeTTM", 0.0), 2);
                             double dividendYieldTTM = KeyMetricsTTM.getDividendYieldTTM(ticker);
                             double payoutRatio = round(ratios.optDouble("payoutRatioTTM", 0.0), 2);
-                            double grahamNumber = round(ratios.optDouble("grahamNumberTTM", 0.0), 2);
                             double debtToEquity = KeyMetricsTTM.getDebtToEquityTTM(ticker);
                             double epsCurrentYear = epsEstimates != null 
                                 ? round(epsEstimates.optDouble("eps0", 0.0), 2) 
@@ -682,6 +681,7 @@ public class Watchlist {
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
+                            double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
                             double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, 
                                     currentRatio, quickRatio);
@@ -942,6 +942,20 @@ public class Watchlist {
     return count > 0 ? round(sum / count, 2) : 0.0;
 }
 
+    
+private double calculateGrahamNumber(double price, double peAvg, double pbAvg, double epsTtm, double pbTtm) {
+    if (peAvg <= 0 || pbAvg <= 0 || price <= 0 || pbTtm <= 0 || epsTtm <= 0) {
+        return 0.0;
+    }
+    
+    // Calculate Graham Number using both average and current values
+    // The formula: sqrt(peAvg * pbAvg * epsTtm * (1/pbTtm) * price)
+    double grahamNumber = Math.sqrt(peAvg * pbAvg * epsTtm * (1/pbTtm) * price);
+    
+    return round(grahamNumber, 2);
+}
+    
+    
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
                                    double roe, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
                                    double currentRatio, double quickRatio) 
