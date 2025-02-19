@@ -567,8 +567,7 @@ public class Watchlist {
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg,
-                            roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
@@ -683,8 +682,7 @@ public class Watchlist {
                             double peAvg = fetchAveragePE(ticker);
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, 
-                                    currentRatio, quickRatio);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -972,6 +970,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     double epsGrowth3Term = 0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
+    double grahamNumberTmmTerm=0;
 
 
 
@@ -1087,6 +1086,10 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     } else if (epsGrowth3 >= 75) {
         epsGrowth3Term = 2;
     }
+    
+    // Conditions for Graham Number Term
+    
+    
     
     // Conditions for current ratio
     if (currentRatio < 1) {
