@@ -2,6 +2,7 @@ package afin.jstocks;
 
 
 import javax.swing.*;
+import javax.swing.RowSorter.SortKey;
 import javax.swing.event.RowSorterEvent;
 import javax.swing.event.RowSorterListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -1134,31 +1135,102 @@ private void exportToExcel() {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Watchlist");
             
-            // Create header row
+            // Create cell styles
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+            
+            CellStyle normalStyle = workbook.createCellStyle();
+            normalStyle.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+            normalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            
+            CellStyle lightRedStyle = workbook.createCellStyle();
+            lightRedStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+            lightRedStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            
+            CellStyle lightYellowStyle = workbook.createCellStyle();
+            lightYellowStyle.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+            lightYellowStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            
+            // Get current column order
+            TableColumnModel columnModel = watchlistTable.getColumnModel();
+            int columnCount = columnModel.getColumnCount();
+            
+            // Create header row with current column order
             Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < tableModel.getColumnCount(); i++) {
+            for (int i = 0; i < columnCount; i++) {
+                TableColumn tableColumn = columnModel.getColumn(i);
+                int modelIndex = tableColumn.getModelIndex();
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(tableModel.getColumnName(i));
+                cell.setCellValue(tableModel.getColumnName(modelIndex));
+                cell.setCellStyle(headerStyle);
             }
             
-            // Create data rows
-            for (int row = 0; row < tableModel.getRowCount(); row++) {
+            // Get current sort order and sorted rows
+            List<? extends SortKey> sortKeys = ((TableRowSorter<?>)watchlistTable.getRowSorter()).getSortKeys();
+            
+            // Create data rows maintaining sort order
+            for (int row = 0; row < watchlistTable.getRowCount(); row++) {
                 Row dataRow = sheet.createRow(row + 1);
-                for (int col = 0; col < tableModel.getColumnCount(); col++) {
-                    Object value = tableModel.getValueAt(row, col);
-                    Cell cell = dataRow.createCell(col);
+                int modelRow = watchlistTable.convertRowIndexToModel(row);
+                
+                // Use column model to maintain column order
+                for (int viewCol = 0; viewCol < columnCount; viewCol++) {
+                    TableColumn tableColumn = columnModel.getColumn(viewCol);
+                    int modelCol = tableColumn.getModelIndex();
                     
+                    Object value = tableModel.getValueAt(modelRow, modelCol);
+                    Cell cell = dataRow.createCell(viewCol);
+                    
+                    // Set cell value and style
                     if (value instanceof Number) {
-                        cell.setCellValue(((Number) value).doubleValue());
+                        double numValue = ((Number) value).doubleValue();
+                        cell.setCellValue(numValue);
+                        
+                        if (numValue < 0) {
+                            cell.setCellStyle(lightRedStyle);
+                        } else if (numValue == 0.0) {
+                            cell.setCellStyle(lightYellowStyle);
+                        } else {
+                            cell.setCellStyle(normalStyle);
+                        }
                     } else if (value != null) {
                         cell.setCellValue(value.toString());
+                        cell.setCellStyle(normalStyle);
+                    } else {
+                        cell.setCellStyle(normalStyle);
                     }
                 }
             }
             
-            // Auto-size columns
-            for (int i = 0; i < tableModel.getColumnCount(); i++) {
-                sheet.autoSizeColumn(i);
+            // Format numbers
+            DataFormat format = workbook.createDataFormat();
+            CellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.setDataFormat(format.getFormat("0.00"));
+            
+            // Apply number formatting while preserving colors
+            for (int row = 1; row <= tableModel.getRowCount(); row++) {
+                for (int col = 0; col < columnCount; col++) {
+                    Cell cell = sheet.getRow(row).getCell(col);
+                    if (cell != null && cell.getCellType() == CellType.NUMERIC) {
+                        CellStyle combinedStyle = workbook.createCellStyle();
+                        CellStyle currentStyle = cell.getCellStyle();
+                        combinedStyle.cloneStyleFrom(currentStyle);
+                        combinedStyle.setDataFormat(numberStyle.getDataFormat());
+                        cell.setCellStyle(combinedStyle);
+                    }
+                }
+            }
+            
+            // Auto-size columns while respecting current visibility
+            for (int i = 0; i < columnCount; i++) {
+                TableColumn tableColumn = columnModel.getColumn(i);
+                if (tableColumn.getMaxWidth() != 0) {  // Only if column is visible
+                    sheet.autoSizeColumn(i);
+                } else {
+                    sheet.setColumnWidth(i, 0);  // Hide column in Excel
+                }
             }
             
             // Write to file
@@ -1170,6 +1242,7 @@ private void exportToExcel() {
                     JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             JOptionPane.showMessageDialog(null,
                 "Error exporting file: " + e.getMessage(),
                 "Export Error",
