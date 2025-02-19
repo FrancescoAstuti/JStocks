@@ -31,6 +31,8 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import java.awt.Color;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import java.io.FileOutputStream;
 
 public class Watchlist {
@@ -1132,32 +1134,31 @@ private void exportToExcel() {
             file = new File(file.getAbsolutePath() + ".xlsx");
         }
         
-        try (Workbook workbook = new XSSFWorkbook()) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Watchlist");
             
-            // Create cell styles
-            CellStyle headerStyle = workbook.createCellStyle();
+            // Create all styles
+            XSSFCellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             headerStyle.setBorderBottom(BorderStyle.THIN);
             
-            CellStyle normalStyle = workbook.createCellStyle();
-            normalStyle.setFillForegroundColor(IndexedColors.WHITE.getIndex());
-            normalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            CellStyle lightRedStyle = workbook.createCellStyle();
-            lightRedStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
-            lightRedStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            CellStyle lightYellowStyle = workbook.createCellStyle();
-            lightYellowStyle.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-            lightYellowStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            // Create all custom color styles
+            XSSFCellStyle normalStyle = workbook.createCellStyle();
+            XSSFCellStyle lightRedStyle = createCustomColorStyle(workbook, new byte[]{(byte)255, (byte)235, (byte)235});
+            XSSFCellStyle lightYellowStyle = createCustomColorStyle(workbook, new byte[]{(byte)255, (byte)255, (byte)220});
+            XSSFCellStyle lightGreenStyle = createCustomColorStyle(workbook, new byte[]{(byte)220, (byte)255, (byte)220});
+            XSSFCellStyle mediumGreenStyle = createCustomColorStyle(workbook, new byte[]{(byte)198, (byte)255, (byte)198});
+            XSSFCellStyle darkGreenStyle = createCustomColorStyle(workbook, new byte[]{(byte)178, (byte)255, (byte)178});
+            XSSFCellStyle lightPinkStyle = createCustomColorStyle(workbook, new byte[]{(byte)255, (byte)230, (byte)230});
+            XSSFCellStyle mediumPinkStyle = createCustomColorStyle(workbook, new byte[]{(byte)255, (byte)200, (byte)200});
+            XSSFCellStyle darkPinkStyle = createCustomColorStyle(workbook, new byte[]{(byte)255, (byte)180, (byte)180});
             
             // Get current column order
             TableColumnModel columnModel = watchlistTable.getColumnModel();
             int columnCount = columnModel.getColumnCount();
             
-            // Create header row with current column order
+            // Create header row
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < columnCount; i++) {
                 TableColumn tableColumn = columnModel.getColumn(i);
@@ -1167,33 +1168,55 @@ private void exportToExcel() {
                 cell.setCellStyle(headerStyle);
             }
             
-            // Get current sort order and sorted rows
-            List<? extends SortKey> sortKeys = ((TableRowSorter<?>)watchlistTable.getRowSorter()).getSortKeys();
-            
-            // Create data rows maintaining sort order
+            // Create data rows
             for (int row = 0; row < watchlistTable.getRowCount(); row++) {
                 Row dataRow = sheet.createRow(row + 1);
                 int modelRow = watchlistTable.convertRowIndexToModel(row);
                 
-                // Use column model to maintain column order
                 for (int viewCol = 0; viewCol < columnCount; viewCol++) {
                     TableColumn tableColumn = columnModel.getColumn(viewCol);
                     int modelCol = tableColumn.getModelIndex();
-                    
+                    String columnName = tableModel.getColumnName(modelCol);
                     Object value = tableModel.getValueAt(modelRow, modelCol);
                     Cell cell = dataRow.createCell(viewCol);
                     
-                    // Set cell value and style
                     if (value instanceof Number) {
                         double numValue = ((Number) value).doubleValue();
                         cell.setCellValue(numValue);
                         
-                        if (numValue < 0) {
-                            cell.setCellStyle(lightRedStyle);
-                        } else if (numValue == 0.0) {
-                            cell.setCellStyle(lightYellowStyle);
+                        if (columnName.equals("Graham Number")) {
+                            double price = getPriceForRow(modelRow);
+                            if (price > 0) {
+                                double percentDiff = (numValue - price) / price * 100;
+                                
+                                if (percentDiff > 0) {
+                                    if (percentDiff <= 25) {
+                                        cell.setCellStyle(lightGreenStyle);
+                                    } else if (percentDiff <= 50) {
+                                        cell.setCellStyle(mediumGreenStyle);
+                                    } else {
+                                        cell.setCellStyle(darkGreenStyle);
+                                    }
+                                } else {
+                                    percentDiff = Math.abs(percentDiff);
+                                    if (percentDiff <= 25) {
+                                        cell.setCellStyle(lightPinkStyle);
+                                    } else if (percentDiff <= 50) {
+                                        cell.setCellStyle(mediumPinkStyle);
+                                    } else {
+                                        cell.setCellStyle(darkPinkStyle);
+                                    }
+                                }
+                            }
                         } else {
-                            cell.setCellStyle(normalStyle);
+                            // Normal number coloring
+                            if (numValue < 0) {
+                                cell.setCellStyle(lightRedStyle);
+                            } else if (numValue == 0.0) {
+                                cell.setCellStyle(lightYellowStyle);
+                            } else {
+                                cell.setCellStyle(normalStyle);
+                            }
                         }
                     } else if (value != null) {
                         cell.setCellValue(value.toString());
@@ -1206,30 +1229,26 @@ private void exportToExcel() {
             
             // Format numbers
             DataFormat format = workbook.createDataFormat();
-            CellStyle numberStyle = workbook.createCellStyle();
-            numberStyle.setDataFormat(format.getFormat("0.00"));
-            
-            // Apply number formatting while preserving colors
             for (int row = 1; row <= tableModel.getRowCount(); row++) {
                 for (int col = 0; col < columnCount; col++) {
                     Cell cell = sheet.getRow(row).getCell(col);
                     if (cell != null && cell.getCellType() == CellType.NUMERIC) {
-                        CellStyle combinedStyle = workbook.createCellStyle();
-                        CellStyle currentStyle = cell.getCellStyle();
-                        combinedStyle.cloneStyleFrom(currentStyle);
-                        combinedStyle.setDataFormat(numberStyle.getDataFormat());
-                        cell.setCellStyle(combinedStyle);
+                        XSSFCellStyle currentStyle = (XSSFCellStyle) cell.getCellStyle();
+                        XSSFCellStyle newStyle = workbook.createCellStyle();
+                        newStyle.cloneStyleFrom(currentStyle);
+                        newStyle.setDataFormat(format.getFormat("0.00"));
+                        cell.setCellStyle(newStyle);
                     }
                 }
             }
             
-            // Auto-size columns while respecting current visibility
+            // Auto-size columns
             for (int i = 0; i < columnCount; i++) {
                 TableColumn tableColumn = columnModel.getColumn(i);
-                if (tableColumn.getMaxWidth() != 0) {  // Only if column is visible
+                if (tableColumn.getMaxWidth() != 0) {
                     sheet.autoSizeColumn(i);
                 } else {
-                    sheet.setColumnWidth(i, 0);  // Hide column in Excel
+                    sheet.setColumnWidth(i, 0);
                 }
             }
             
@@ -1245,23 +1264,108 @@ private void exportToExcel() {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
                 "Error exporting file: " + e.getMessage(),
-                "Export Error",
+                "Error",
                 JOptionPane.ERROR_MESSAGE);
         }
     }
 }
 
-   public class CustomCellRenderer extends DefaultTableCellRenderer {
+private XSSFCellStyle createCustomColorStyle(XSSFWorkbook workbook, byte[] rgb) {
+    XSSFCellStyle style = workbook.createCellStyle();
+    XSSFColor color = new XSSFColor(rgb, null);
+    style.setFillForegroundColor(color);
+    style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+    return style;
+}
+
+private double getPriceForRow(int row) {
+    int priceColumn = -1;
+    for (int i = 0; i < tableModel.getColumnCount(); i++) {
+        if (tableModel.getColumnName(i).equals("Price")) {
+            priceColumn = i;
+            break;
+        }
+    }
+    
+    if (priceColumn != -1) {
+        Object value = tableModel.getValueAt(row, priceColumn);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+public class CustomCellRenderer extends DefaultTableCellRenderer {
+    // Soft base colors
     private final Color LIGHT_RED = new Color(255, 235, 235);
-    private final Color LIGHT_YELLOW = new Color(255, 255, 220);// Light red color
+    private final Color LIGHT_YELLOW = new Color(255, 255, 220);
+    
+    // Soft Graham Number colors
+    private final Color LIGHT_GREEN = new Color(220, 255, 220);    // Very soft green
+    private final Color MEDIUM_GREEN = new Color(198, 255, 198);   // Soft mint green
+    private final Color DARK_GREEN = new Color(178, 255, 178);     // Pastel green
+    
+    private final Color LIGHT_PINK = new Color(255, 230, 230);     // Very soft pink
+    private final Color MEDIUM_PINK = new Color(255, 200, 200);    // Soft pink
+    private final Color DARK_PINK = new Color(255, 180, 180);      // Pastel pink
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
-                                                   boolean isSelected, boolean hasFocus, int row, int column) {
+                                                 boolean isSelected, boolean hasFocus, 
+                                                 int row, int column) {
         Component cell = super.getTableCellRendererComponent(
             table, value, isSelected, hasFocus, row, column);
             
         if (!isSelected) { // Don't change background if cell is selected
+            String columnName = table.getColumnName(column);
+            
+            if (columnName.equals("Graham Number") && value instanceof Double) {
+                double grahamNumber = (Double) value;
+                // Get the price from the "Price" column
+                int priceColumn = -1;
+                for (int i = 0; i < table.getColumnCount(); i++) {
+                    if (table.getColumnName(i).equals("Price")) {
+                        priceColumn = i;
+                        break;
+                    }
+                }
+                
+                if (priceColumn != -1) {
+                    Object priceObj = table.getValueAt(row, priceColumn);
+                    if (priceObj instanceof Double) {
+                        double price = (Double) priceObj;
+                        if (price > 0) {
+                            double percentDiff = (grahamNumber - price) / price * 100;
+                            
+                            if (percentDiff > 0) {
+                                if (percentDiff <= 25) {
+                                    cell.setBackground(LIGHT_GREEN);
+                                } else if (percentDiff <= 50) {
+                                    cell.setBackground(MEDIUM_GREEN);
+                                } else {
+                                    cell.setBackground(DARK_GREEN);
+                                }
+                            } else {
+                                percentDiff = Math.abs(percentDiff);
+                                if (percentDiff <= 25) {
+                                    cell.setBackground(LIGHT_PINK);
+                                } else if (percentDiff <= 50) {
+                                    cell.setBackground(MEDIUM_PINK);
+                                } else {
+                                    cell.setBackground(DARK_PINK);
+                                }
+                            }
+                            
+                            // Set text color to dark gray for better readability
+                            cell.setForeground(new Color(51, 51, 51));
+                            return cell;
+                        }
+                    }
+                }
+            }
+            
+            // Default coloring for other cells
             if (value instanceof Double) {
                 double numValue = (Double) value;
                 if (numValue < 0) {
@@ -1276,6 +1380,9 @@ private void exportToExcel() {
             } else {
                 cell.setBackground(Color.WHITE);
             }
+            
+            // Reset text color for non-Graham Number cells
+            cell.setForeground(Color.BLACK);
         }
         
         return cell;
