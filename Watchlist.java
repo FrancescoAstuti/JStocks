@@ -570,7 +570,7 @@ public class Watchlist {
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
@@ -685,7 +685,7 @@ public class Watchlist {
                             double peAvg = fetchAveragePE(ticker);
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -959,7 +959,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
                                    double roe, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
-                                   double currentRatio, double quickRatio) 
+                                   double currentRatio, double quickRatio, double grahamNumberTerm, double price) 
     {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
@@ -973,9 +973,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     double epsGrowth3Term = 0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
-    double grahamNumberTmmTerm=0;
-
-
+   
 
 // Conditions for debt to Equity
   if (debtToEquity == 0 || deAvg == 0.0) {
@@ -1093,6 +1091,20 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     // Conditions for Graham Number Term
     
     
+         double percentDiff = (grahamNumberTerm - price) / price * 100;
+        
+        if (percentDiff <= -25) {
+            grahamNumberTerm = -2;
+    } else if (percentDiff > -25 && percentDiff <= 0) {
+            grahamNumberTerm = -1;
+    } else if (percentDiff > 0 && percentDiff <= 25) {
+            grahamNumberTerm = 0;
+    } else if (percentDiff > 25 && percentDiff <= 50) {
+            grahamNumberTerm = 1;
+    } else if (percentDiff > 50) {
+            grahamNumberTerm = 2;
+    }
+        
     
     // Conditions for current ratio
     if (currentRatio < 1) {
@@ -1116,7 +1128,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
  
 
-    return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm); 
+    return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm + grahamNumberTerm); 
             
     } 
     public static void main(String[] args) {
