@@ -90,7 +90,7 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry",
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg",
         }, 0) {
             
 
@@ -119,6 +119,7 @@ public class Watchlist {
                     case 21:
                     case 22:
                     case 23:
+                    case 24:
                         return Double.class;
                     default:
                         return String.class;
@@ -327,6 +328,7 @@ public class Watchlist {
                         jsonObject.optDouble("epsGrowth3", 0.0), 
                         jsonObject.optDouble("deAvg", 0.0),
                         jsonObject.optString("industry", "N/A"),
+                        jsonObject.optDouble("roeAvg", 0.0),
                         
                         
                     };
@@ -377,6 +379,7 @@ public class Watchlist {
             jsonObject.put("epsGrowth3", tableModel.getValueAt(i, 21));
             jsonObject.put("deAvg", tableModel.getValueAt(i, 22));
              jsonObject.put("industry", tableModel.getValueAt(i, 23));
+             jsonObject.put("roeAvg", tableModel.getValueAt(i, 24));
             jsonArray.put(jsonObject);
         }
 
@@ -687,6 +690,7 @@ public class Watchlist {
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
+                            double roeAvg = fetchAverageROE(ticker);
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
                             String industry = CompanyOverview.fetchIndustry(ticker);
@@ -717,6 +721,7 @@ public class Watchlist {
                                 tableModel.setValueAt(epsGrowth3, modelRow, 21);
                                 tableModel.setValueAt(deAvg, modelRow, 22);
                                 tableModel.setValueAt(industry, modelRow, 23);
+                                tableModel.setValueAt(roeAvg, modelRow, 24); // ROE Avg
                                 
                             });
 
@@ -934,6 +939,45 @@ public class Watchlist {
                         peRatio = Math.max(peRatio, -30.0);
                     }
                     sum += peRatio;
+                    count++;
+                }
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        if (connection != null) {
+            connection.disconnect();
+        }
+    }
+
+    return count > 0 ? round(sum / count, 2) : 0.0;
+}
+    
+    
+    private double fetchAverageROE(String ticker) {
+    String urlString = String.format("https://financialmodelingprep.com/api/v3/key-metrics/%s?period=annual&limit=20&apikey=%s", ticker, API_KEY);
+    HttpURLConnection connection = null;
+    double sum = 0;
+    int count = 0;
+
+    try {
+        URL url = new URL(urlString);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode == 200) {
+            Scanner scanner = new Scanner(url.openStream());
+            String response = scanner.useDelimiter("\\Z").next();
+            scanner.close();
+
+            JSONArray data = new JSONArray(response);
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject metrics = data.getJSONObject(i);
+                double roe = metrics.optDouble("roe", 0.0);
+                if (roe != 0.0) {
+                    sum += roe;
                     count++;
                 }
             }
@@ -1471,7 +1515,7 @@ private class CustomCellRenderer extends DefaultTableCellRenderer {
                 }
             }
             
-            else if (columnName.equals("PB TTM") && value instanceof Double) {
+    else if (columnName.equals("PB TTM") && value instanceof Double) {
                     double pbTtm = (Double) value;
                      // Get the PB Avg from the column
                     int pbAvgColumn = -1;
@@ -1514,6 +1558,52 @@ private class CustomCellRenderer extends DefaultTableCellRenderer {
         }
     }
 }
+            
+             else if (columnName.equals("ROE TTM") && value instanceof Double) {
+                    double roeTtm = (Double) value;
+                    // Get the average ROE from historical data
+                    int roeAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("ROE Avg")) {
+                            roeAvgColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (roeAvgColumn != -1) {
+                        Object roeAvgObj = table.getValueAt(row, roeAvgColumn);
+                        if (roeAvgObj instanceof Double) {
+                            double roeAvg = (Double) roeAvgObj;
+                            if (roeAvg > 0 && roeTtm > 0) {
+                                double ratio = roeTtm / roeAvg;
+                                
+                                if (ratio > 1) {  // ROE TTM is higher than average (better performance)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // ROE TTM is lower than average (worse performance)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
+                    }
+                }
+                
+            
             
             // Default coloring for other cells
             if (value instanceof Double) {

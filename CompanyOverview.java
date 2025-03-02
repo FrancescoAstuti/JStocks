@@ -1,5 +1,8 @@
 package afin.jstocks;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -40,7 +43,42 @@ public class CompanyOverview {
     private static final Color TTM_LINE_COLOR = new Color(46, 204, 113);
     private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 16);
     private static final Font LABEL_FONT = new Font("Segoe UI", Font.PLAIN, 12);
+    private static final String API_KEY = API_key.getApiKey();
+    
+public static String fetchIndustry(String ticker) {
+    String urlString = String.format("https://financialmodelingprep.com/api/v3/profile/%s?apikey=%s", ticker, API_KEY);
+    HttpURLConnection connection = null;
 
+    try {
+        URL url = new URL(urlString);
+        connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode == 200) {
+            Scanner scanner = new Scanner(url.openStream());
+            String response = scanner.useDelimiter("\\Z").next();
+            scanner.close();
+
+            JSONArray data = new JSONArray(response);
+            if (data.length() > 0) {
+                JSONObject profile = data.getJSONObject(0);
+                return profile.optString("industry", "N/A");
+            }
+        }
+        return "N/A";
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "N/A";
+    } finally {
+        if (connection != null) {
+            connection.disconnect();
+        }
+    }
+}    
+    
 private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
     Map<String, Double> ttmValues = new HashMap<>();
     try {
@@ -58,6 +96,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
                 ttmValues.put("epsTTM", stock.getDouble("epsTTM"));
                 ttmValues.put("pfcfTTM", stock.getDouble("pfcfTTM"));
                 ttmValues.put("debtToEquityTTM", stock.getDouble("debtToEquity"));
+                ttmValues.put("roeTTM", stock.getDouble("roeTTM"));
                 
                 // Debug prints
                 System.out.println("Found TTM values:");
@@ -66,6 +105,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
                 System.out.println("EPS TTM: " + ttmValues.get("epsTTM"));
                 System.out.println("PFCF TTM: " + ttmValues.get("pfcfTTM"));
                 System.out.println("Debt to Equity TTM: " + ttmValues.get("debtToEquityTTM"));
+                 System.out.println("ROE TTM: " + ttmValues.get("roeTTM"));
                 break;
             }
         }
@@ -103,6 +143,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         List<RatioData> epsRatios = Ratios.fetchQuarterlyEPS(ticker);
         List<RatioData> pfcfRatios = Ratios.fetchHistoricalPFCF(ticker);
         List<RatioData> debtToEquityRatios = Ratios.fetchHistoricalDebtToEquity(ticker);
+        List<RatioData> roeRatios = Ratios.fetchHistoricalReturnOnEquity(ticker);
 
         // Filter and sort data
         LocalDate timeRange = LocalDate.now().minusYears(20);
@@ -113,10 +154,12 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         epsRatios = filterAndSortRatios(epsRatios, timeRange, formatter);
         pfcfRatios = filterAndSortRatios(pfcfRatios, timeRange, formatter);
         debtToEquityRatios = filterAndSortRatios(debtToEquityRatios, timeRange, formatter);
+        roeRatios = filterAndSortRatios(roeRatios, timeRange, formatter);
 
         // Calculate averages
         List<Double> cappedPeValues = capValues(peRatios, 0.0, 40.0);
         List<Double> cappedPfcfValues = capValues(pfcfRatios, -50.0, 50.0);
+        List<Double> cappedRoeValues = capValues(roeRatios, -50.0, 50.0);
 
         double peAverage = calculateAverage(cappedPeValues);
         double pbAverage = calculateAverage(pbRatios.stream()
@@ -126,6 +169,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         double pfcfAverage = calculateAverage(cappedPfcfValues);
         double debtToEquityAverage = calculateAverage(debtToEquityRatios.stream()
                 .map(RatioData::getValue).collect(Collectors.toList()));
+        double roeAverage = calculateAverage(cappedRoeValues);
 
         // Get TTM values from watchlist
         Map<String, Double> ttmValues = getTTMValuesFromWatchlist(ticker);
@@ -135,6 +179,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         DefaultCategoryDataset epsDataset = createDataset(epsRatios, "EPS", null, null);
         DefaultCategoryDataset pfcfDataset = createDataset(pfcfRatios, "PFCF Ratio", -50.0, 50.0);
         DefaultCategoryDataset debtToEquityDataset = createDataset(debtToEquityRatios, "Debt to Equity Ratio", null, null);
+        DefaultCategoryDataset roeDataset = createDataset(roeRatios, "ROE", -50.0, 50.0);
 
         // Create charts
         JFreeChart peChart = createStyledChart("PE Ratio", "Date", "PE Ratio", peDataset);
@@ -143,6 +188,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         JFreeChart pfcfChart = createStyledChart("PFCF Ratio", "Date", "PFCF Ratio", pfcfDataset);
         JFreeChart debtToEquityChart = createStyledChart("Debt to Equity", 
                 "Date", "Debt to Equity Ratio", debtToEquityDataset);
+        JFreeChart roeChart = createStyledChart("Return on Equity", "Date", "ROE", roeDataset);
 
         // Add markers for averages and TTM values
         addMarker(peChart, peAverage, "Average PE", MARKER_LINE_COLOR);
@@ -160,9 +206,12 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         addMarker(debtToEquityChart, debtToEquityAverage, "Average Debt to Equity", MARKER_LINE_COLOR);
         addMarker(debtToEquityChart, ttmValues.getOrDefault("debtToEquityTTM", Double.NaN), 
                 "TTM Debt to Equity", TTM_LINE_COLOR);
+        
+        addMarker(roeChart, roeAverage, "Average ROE", MARKER_LINE_COLOR);
+        addMarker(roeChart, ttmValues.getOrDefault("roeTTM", Double.NaN), "TTM ROE", TTM_LINE_COLOR);
 
         // Setup panel for charts
-        JPanel chartsPanel = new JPanel(new GridLayout(5, 1, 0, 10));
+        JPanel chartsPanel = new JPanel(new GridLayout(6, 1, 0, 10));
         chartsPanel.setBackground(BACKGROUND_COLOR);
         chartsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -172,6 +221,7 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         addChartToPanel(chartsPanel, epsChart);
         addChartToPanel(chartsPanel, pfcfChart);
         addChartToPanel(chartsPanel, debtToEquityChart);
+        addChartToPanel(chartsPanel, roeChart);
 
         // Create scroll pane
         JScrollPane scrollPane = new JScrollPane(chartsPanel);
@@ -187,8 +237,8 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         overviewFrame.setVisible(true);
 
         // Save data
-        saveDataToFile(ticker, peRatios, pbRatios, epsRatios, pfcfRatios, debtToEquityRatios,
-                peAverage, pbAverage, epsAverage, pfcfAverage, debtToEquityAverage);
+        saveDataToFile(ticker, peRatios, pbRatios, epsRatios, pfcfRatios, debtToEquityRatios, roeRatios,
+                peAverage, pbAverage, epsAverage, pfcfAverage, debtToEquityAverage, roeAverage);
     }
 
     private static List<RatioData> filterAndSortRatios(List<RatioData> ratios, LocalDate timeRange, 
@@ -313,9 +363,9 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
     }
 
     private static void saveDataToFile(String ticker, List<RatioData> peRatios, List<RatioData> pbRatios,
-            List<RatioData> epsRatios, List<RatioData> pfcfRatios, List<RatioData> debtToEquityRatios,
+            List<RatioData> epsRatios, List<RatioData> pfcfRatios, List<RatioData> debtToEquityRatios, List<RatioData> roeRatios,
             double peAverage, double pbAverage, double epsAverage, double pfcfAverage, 
-            double debtToEquityAverage) {
+            double debtToEquityAverage, double roeAverage) {
         JSONObject jsonObject = new JSONObject();
         
         jsonObject.put("ticker", ticker);
@@ -325,12 +375,14 @@ private static Map<String, Double> getTTMValuesFromWatchlist(String ticker) {
         jsonObject.put("epsAverage", epsAverage);
         jsonObject.put("pfcfAverage", pfcfAverage);
         jsonObject.put("debtToEquityAverage", debtToEquityAverage);
+        jsonObject.put("roeAverage", roeAverage);
 
         addRatiosToJson(jsonObject, "peRatios", peRatios, 0.0, 40.0);
         addRatiosToJson(jsonObject, "pbRatios", pbRatios, null, null);
         addRatiosToJson(jsonObject, "epsRatios", epsRatios, null, null);
         addRatiosToJson(jsonObject, "pfcfRatios", pfcfRatios, -50.0, 50.0);
         addRatiosToJson(jsonObject, "debtToEquityRatios", debtToEquityRatios, null, null);
+        addRatiosToJson(jsonObject, "roeRatios", roeRatios, -50.0, 50.0);
 
         try (FileWriter file = new FileWriter("data/" + ticker + "_overview.json")) {
             file.write(jsonObject.toString(2));

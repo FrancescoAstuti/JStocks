@@ -12,7 +12,7 @@ import java.util.List;
 
 public class Ratios {
 
-    private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
+    private static final String API_KEY = API_key.getApiKey();
 
     public static List<RatioData> fetchHistoricalPE(String ticker) {
         List<RatioData> peRatios = new ArrayList<>();
@@ -211,6 +211,42 @@ public class Ratios {
             e.printStackTrace();
         }
         return debtToEquityRatios;
+    }
+    
+        public static List<RatioData> fetchHistoricalReturnOnEquity(String ticker) {
+        List<RatioData> ReturnOnEquityRatios = new ArrayList<>();
+        try {
+            URL url = new URL("https://financialmodelingprep.com/api/v3/ratios/" + ticker + "?period=annual&apikey=" + API_KEY);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            int responseCode = conn.getResponseCode();
+            
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+
+            in.close();
+            conn.disconnect();
+           
+            JSONArray jsonArray = new JSONArray(content.toString());
+            if (jsonArray.length() == 0) {
+                System.out.println("No historical Return on Equity data available for ticker: " + ticker);
+            } else {
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String date = jsonObject.getString("date");
+                    double returnOnEquity = jsonObject.getDouble("returnOnEquity");
+                    ReturnOnEquityRatios.add(new RatioData(date, returnOnEquity));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ReturnOnEquityRatios;
     }
     
     public static double fetchDebtToEquityAverage(String ticker) {

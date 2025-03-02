@@ -125,7 +125,7 @@ public class KeyMetricsTTM {
 
             // Round to one decimal place using BigDecimal
             debtToEquity = new BigDecimal(debtToEquity)
-                               .setScale(1, RoundingMode.HALF_UP)
+                               .setScale(2, RoundingMode.HALF_UP)
                                .doubleValue();
 
             return debtToEquity;
