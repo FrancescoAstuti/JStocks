@@ -270,7 +270,30 @@ public class Ratios {
     
     return count > 0 ? round(sum / count, 2) : 0.0;
 }
+    
+    public static double fetchPriceToFreeCashFlowAverage(String ticker) {
+    List<RatioData> pfcfRatios = fetchHistoricalPFCF(ticker);
+    
+    if (pfcfRatios.isEmpty()) {
+        return 0.0;
+    }
 
+    double sum = 0;
+    int count = 0;
+    
+    for (RatioData ratio : pfcfRatios) {
+        double value = ratio.getValue();
+        if (value != 0) {
+            // Cap extreme values to prevent outliers from skewing the average
+            value = Math.min(Math.max(value, -100.0), 100.0); // Cap between -100 and 100
+            sum += value;
+            count++;
+        }
+    }
+    
+    return count > 0 ? round(sum / count, 2) : 0.0;
+} 
+    
 private static double round(double value, int places) {
     if (places < 0) throw new IllegalArgumentException();
     long factor = (long) Math.pow(10, places);

@@ -90,7 +90,8 @@ public class Watchlist {
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
-            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg",
+            "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", 
+            "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg", "P/FCF", "PFCF Avg",
         }, 0) {
             
 
@@ -120,6 +121,8 @@ public class Watchlist {
                     case 22:
                     case 23:
                     case 24:
+                    case 25:
+                    case 26:
                         return Double.class;
                     default:
                         return String.class;
@@ -329,6 +332,8 @@ public class Watchlist {
                         jsonObject.optDouble("deAvg", 0.0),
                         jsonObject.optString("industry", "N/A"),
                         jsonObject.optDouble("roeAvg", 0.0),
+                        jsonObject.optDouble("priceToFCF_TTM", 0.0),
+                        jsonObject.optDouble("priceToFCF_Avg", 0.0),
                         
                         
                     };
@@ -378,8 +383,10 @@ public class Watchlist {
             jsonObject.put("epsGrowth2", tableModel.getValueAt(i, 20));
             jsonObject.put("epsGrowth3", tableModel.getValueAt(i, 21));
             jsonObject.put("deAvg", tableModel.getValueAt(i, 22));
-             jsonObject.put("industry", tableModel.getValueAt(i, 23));
-             jsonObject.put("roeAvg", tableModel.getValueAt(i, 24));
+            jsonObject.put("industry", tableModel.getValueAt(i, 23));
+            jsonObject.put("roeAvg", tableModel.getValueAt(i, 24));
+            jsonObject.put("priceToFCF_TTM", tableModel.getValueAt(i, 25));
+             jsonObject.put("priceToFCF_Avg", tableModel.getValueAt(i, 26));
             jsonArray.put(jsonObject);
         }
 
@@ -577,7 +584,8 @@ public class Watchlist {
             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
+            double roeAvg = 0;
+            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, roeAvg, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
@@ -690,11 +698,13 @@ public class Watchlist {
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
                             double peAvg = fetchAveragePE(ticker);
+                            double priceToFCF_TTM = TTM_Ratios.getPriceToFreeCashFlowRatioTTM(ticker);
+                            double PriceToFCF_Avg = Ratios.fetchPriceToFreeCashFlowAverage(ticker);
                             double roeAvg = fetchAverageROE(ticker);
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
                             String industry = CompanyOverview.fetchIndustry(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -722,6 +732,8 @@ public class Watchlist {
                                 tableModel.setValueAt(deAvg, modelRow, 22);
                                 tableModel.setValueAt(industry, modelRow, 23);
                                 tableModel.setValueAt(roeAvg, modelRow, 24); // ROE Avg
+                                tableModel.setValueAt(priceToFCF_TTM,    modelRow, 25);
+                                tableModel.setValueAt(PriceToFCF_Avg,    modelRow, 26);
                                 
                             });
 
@@ -1008,7 +1020,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
     
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
-                                   double roe, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
+                                   double roe, double roeAvg, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
                                    double currentRatio, double quickRatio, double grahamNumberTerm, double price) 
     {
     double peRatioTerm = 0;
@@ -1018,11 +1030,13 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     double debtToEquityTerm = 0;
     double deAvgTerm = 0;
     double roeTerm = 0;
+    double roeAvgTerm = 0;
     double epsGrowth1Term =0;
     double epsGrowth2Term =0;
     double epsGrowth3Term = 0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
+    
    
 
 // Conditions for debt to Equity
@@ -1095,6 +1109,18 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
         roeTerm = 1;
     } else if (roe >= 0.2) {
         roeTerm = 2;
+    }
+    
+     // Conditions for roeAvg
+    
+    if (roe <= 0 || roeAvg<=0) {
+         roeAvgTerm = -1;
+    } else if (roe / roeAvg < 1) {
+        roeAvgTerm = 0;
+    } else if (roe / roeAvg >= 1 && roe / roeAvg < 1.5) {
+          roeAvgTerm = 1;
+    } else if (roe / roeAvg >= 1.5) {
+         roeAvgTerm = 2;
     }
     
     // Conditions for epsGrowht1
@@ -1178,7 +1204,9 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
  
 
-    return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm  + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term +   epsGrowth2Term + currentRatioTerm + quickRatioTerm + roeTerm + grahamNumberTerm); 
+    return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm 
+                + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term + epsGrowth2Term + currentRatioTerm 
+                + quickRatioTerm + roeTerm + roeAvgTerm + grahamNumberTerm); 
             
     } 
     public static void main(String[] args) {
@@ -1270,7 +1298,104 @@ private void exportToExcel() {
                                     }
                                 }
                             }
-                        } else {
+                        } 
+                        else if (columnName.equals("PE TTM")) {
+                            double peAvg = getPEAvgForRow(modelRow);
+                            if (peAvg > 0 && numValue > 0) {
+                                double ratio = numValue / peAvg;
+                                
+                                if (ratio < 1) {  // PE TTM is lower than average (potentially undervalued)
+                                    if (ratio >= 0.75) {
+                                        cell.setCellStyle(lightGreenStyle);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setCellStyle(mediumGreenStyle);
+                                    } else {
+                                        cell.setCellStyle(darkGreenStyle);
+                                    }
+                                } else {  // PE TTM is higher than average (potentially overvalued)
+                                    if (ratio <= 1.25) {
+                                        cell.setCellStyle(lightPinkStyle);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setCellStyle(mediumPinkStyle);
+                                    } else {
+                                        cell.setCellStyle(darkPinkStyle);
+                                    }
+                                }
+                            }
+                        }
+                        else if (columnName.equals("PB TTM")) {
+                            double pbAvg = getPBAvgForRow(modelRow);
+                            if (pbAvg > 0 && numValue > 0) {
+                                double ratio = numValue / pbAvg;
+                                
+                                if (ratio < 1) {  // PB TTM is lower than average (potentially undervalued)
+                                    if (ratio >= 0.75) {
+                                        cell.setCellStyle(lightGreenStyle);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setCellStyle(mediumGreenStyle);
+                                    } else {
+                                        cell.setCellStyle(darkGreenStyle);
+                                    }
+                                } else {  // PB TTM is higher than average (potentially overvalued)
+                                    if (ratio <= 1.25) {
+                                        cell.setCellStyle(lightPinkStyle);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setCellStyle(mediumPinkStyle);
+                                    } else {
+                                        cell.setCellStyle(darkPinkStyle);
+                                    }
+                                }
+                            }
+                        }
+                        else if (columnName.equals("ROE TTM")) {
+                            double roeAvg = getROEAvgForRow(modelRow);
+                            if (roeAvg > 0 && numValue > 0) {
+                                double ratio = numValue / roeAvg;
+                                
+                                if (ratio > 1) {  // ROE TTM is higher than average (better performance)
+                                    if (ratio <= 1.25) {
+                                        cell.setCellStyle(lightGreenStyle);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setCellStyle(mediumGreenStyle);
+                                    } else {
+                                        cell.setCellStyle(darkGreenStyle);
+                                    }
+                                } else {  // ROE TTM is lower than average (worse performance)
+                                    if (ratio >= 0.75) {
+                                        cell.setCellStyle(lightPinkStyle);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setCellStyle(mediumPinkStyle);
+                                    } else {
+                                        cell.setCellStyle(darkPinkStyle);
+                                    }
+                                }
+                            }
+                        }
+                        else if (columnName.equals("Debt to Equity")) {
+                            double deAvg = getDEAvgForRow(modelRow);
+                            if (deAvg > 0 && numValue > 0) {
+                                double ratio = numValue / deAvg;
+                                
+                                if (ratio < 1) {  // Debt to Equity is lower than average (better)
+                                    if (ratio >= 0.75) {
+                                        cell.setCellStyle(lightGreenStyle);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setCellStyle(mediumGreenStyle);
+                                    } else {
+                                        cell.setCellStyle(darkGreenStyle);
+                                    }
+                                } else {  // Debt to Equity is higher than average (worse)
+                                    if (ratio <= 1.25) {
+                                        cell.setCellStyle(lightPinkStyle);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setCellStyle(mediumPinkStyle);
+                                    } else {
+                                        cell.setCellStyle(darkPinkStyle);
+                                    }
+                                }
+                            }
+                        }
+                        else {
                             // Normal number coloring
                             if (numValue < 0) {
                                 cell.setCellStyle(lightRedStyle);
@@ -1330,6 +1455,60 @@ private void exportToExcel() {
                 JOptionPane.ERROR_MESSAGE);
         }
     }
+}
+
+// Helper methods to get column values for a specific row
+private double getPEAvgForRow(int row) {
+    int column = findColumnByName("PE Avg");
+    if (column != -1) {
+        Object value = tableModel.getValueAt(row, column);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+private double getPBAvgForRow(int row) {
+    int column = findColumnByName("PB Avg");
+    if (column != -1) {
+        Object value = tableModel.getValueAt(row, column);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+private double getROEAvgForRow(int row) {
+    int column = findColumnByName("ROE Avg");
+    if (column != -1) {
+        Object value = tableModel.getValueAt(row, column);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+private double getDEAvgForRow(int row) {
+    int column = findColumnByName("DE Avg");
+    if (column != -1) {
+        Object value = tableModel.getValueAt(row, column);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+private int findColumnByName(String columnName) {
+    for (int i = 0; i < tableModel.getColumnCount(); i++) {
+        if (tableModel.getColumnName(i).equals(columnName)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 private XSSFCellStyle createCustomColorStyle(XSSFWorkbook workbook, byte[] rgb) {
