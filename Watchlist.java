@@ -386,7 +386,7 @@ public class Watchlist {
             jsonObject.put("industry", tableModel.getValueAt(i, 23));
             jsonObject.put("roeAvg", tableModel.getValueAt(i, 24));
             jsonObject.put("priceToFCF_TTM", tableModel.getValueAt(i, 25));
-             jsonObject.put("priceToFCF_Avg", tableModel.getValueAt(i, 26));
+            jsonObject.put("priceToFCF_Avg", tableModel.getValueAt(i, 26));
             jsonArray.put(jsonObject);
         }
 
@@ -585,7 +585,7 @@ public class Watchlist {
             double epsGrowth3 = calculateEpsGrowth2(epsNextYear, epsYear3);
             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
             double roeAvg = 0;
-            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, deAvg, roeTtm, roeAvg, dividendYieldTTM, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
+            double aScore = 0;
 
             Object[] rowData = new Object[]{
                 name, ticker, price, peTtm, pbTtm, dividendYieldTTM, payoutRatio, grahamNumber, pbAvg, peAvg, epsTtm, roeTtm, aScore,
@@ -704,7 +704,7 @@ public class Watchlist {
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker); 
                             String industry = CompanyOverview.fetchIndustry(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price);
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price, priceToFCF_TTM, PriceToFCF_Avg);
                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
@@ -1021,7 +1021,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
                                    double roe, double roeAvg, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3, 
-                                   double currentRatio, double quickRatio, double grahamNumberTerm, double price) 
+                                   double currentRatio, double quickRatio, double grahamNumberTerm, double price, double priceToFCF_TTM, double priceToFCF_AVG) 
     {
     double peRatioTerm = 0;
     double pbRatioTerm = 0;
@@ -1036,6 +1036,8 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     double epsGrowth3Term = 0;
     double currentRatioTerm = 0;
     double quickRatioTerm = 0;
+    double pfcfTerm = 0;
+    
     
    
 
@@ -1073,6 +1075,17 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
         pbRatioTerm = 2;
     }
 
+     if (priceToFCF_TTM <= 0) {
+        pfcfTerm = -2;  // Penalty for negative FCF
+    } else if (priceToFCF_AVG / priceToFCF_TTM < 1) {
+        pfcfTerm = -1;  // Current PFCF is higher than average (potentially overvalued)
+    } else if (priceToFCF_AVG  / priceToFCF_TTM >= 1 && priceToFCF_AVG  / priceToFCF_TTM < 1.5) {
+        pfcfTerm = 1;   // Current PFCF is lower than average but not significantly
+    } else if (priceToFCF_AVG  / priceToFCF_TTM >= 1.5) {
+        pfcfTerm = 2;   // Current PFCF is significantly lower than average (potentially undervalued)
+    }
+    
+    
     // Conditions for dividendYieldTerm
 // Conditions for dividendYieldTerm
 
@@ -1206,7 +1219,7 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
 
     return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm 
                 + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term + epsGrowth2Term + currentRatioTerm 
-                + quickRatioTerm + roeTerm + roeAvgTerm + grahamNumberTerm); 
+                + quickRatioTerm + roeTerm + roeAvgTerm + grahamNumberTerm + pfcfTerm); 
             
     } 
     public static void main(String[] args) {
@@ -1721,6 +1734,50 @@ private class CustomCellRenderer extends DefaultTableCellRenderer {
                         cell.setBackground(DARK_GREEN);
                     }
                 } else {  // PB TTM is higher than average (potentially overvalued)
+                    if (ratio <= 1.25) {
+                        cell.setBackground(LIGHT_PINK);
+                    } else if (ratio <= 1.5) {
+                        cell.setBackground(MEDIUM_PINK);
+                    } else {
+                        cell.setBackground(DARK_PINK);
+                    }
+                }
+                
+                // Set text color to dark gray for better readability
+                cell.setForeground(new Color(51, 51, 51));
+                return cell;
+            }
+        }
+    }
+}
+    
+    else if (columnName.equals("P/FCF") && value instanceof Double) {
+    double pfcfTtm = (Double) value;
+    // Get the average P/FCF from historical data
+    int pfcfAvgColumn = -1;
+    for (int i = 0; i < table.getColumnCount(); i++) {
+        if (table.getColumnName(i).equals("PFCF Avg")) {
+            pfcfAvgColumn = i;
+            break;
+        }
+    }
+    
+    if (pfcfAvgColumn != -1) {
+        Object pfcfAvgObj = table.getValueAt(row, pfcfAvgColumn);
+        if (pfcfAvgObj instanceof Double) {
+            double pfcfAvg = (Double) pfcfAvgObj;
+            if (pfcfAvg > 0 && pfcfTtm > 0) {
+                double ratio = pfcfTtm / pfcfAvg;
+                
+                if (ratio < 1) {  // P/FCF TTM is lower than average (better valuation)
+                    if (ratio >= 0.75) {
+                        cell.setBackground(LIGHT_GREEN);
+                    } else if (ratio >= 0.5) {
+                        cell.setBackground(MEDIUM_GREEN);
+                    } else {
+                        cell.setBackground(DARK_GREEN);
+                    }
+                } else {  // P/FCF TTM is higher than average (worse valuation)
                     if (ratio <= 1.25) {
                         cell.setBackground(LIGHT_PINK);
                     } else if (ratio <= 1.5) {
