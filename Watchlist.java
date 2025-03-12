@@ -1360,6 +1360,33 @@ private void exportToExcel() {
                                 }
                             }
                         }
+                        
+                        
+                        else if (columnName.equals("P/FCF")) {
+    double pfcfAvg = getPriceToFCFAvgForRow(modelRow);
+    if (pfcfAvg > 0 && numValue > 0) {
+        double ratio = numValue / pfcfAvg;
+        
+        if (ratio < 1) {  // P/FCF TTM is lower than average (better valuation)
+            if (ratio >= 0.75) {
+                cell.setCellStyle(lightGreenStyle);
+            } else if (ratio >= 0.5) {
+                cell.setCellStyle(mediumGreenStyle);
+            } else {
+                cell.setCellStyle(darkGreenStyle);
+            }
+        } else {  // P/FCF TTM is higher than average (worse valuation)
+            if (ratio <= 1.25) {
+                cell.setCellStyle(lightPinkStyle);
+            } else if (ratio <= 1.5) {
+                cell.setCellStyle(mediumPinkStyle);
+            } else {
+                cell.setCellStyle(darkPinkStyle);
+            }
+        }
+    }
+}
+                        
                         else if (columnName.equals("ROE TTM")) {
                             double roeAvg = getROEAvgForRow(modelRow);
                             if (roeAvg > 0 && numValue > 0) {
@@ -1484,6 +1511,17 @@ private double getPEAvgForRow(int row) {
 
 private double getPBAvgForRow(int row) {
     int column = findColumnByName("PB Avg");
+    if (column != -1) {
+        Object value = tableModel.getValueAt(row, column);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+    }
+    return 0.0;
+}
+
+private double getPriceToFCFAvgForRow(int row) {
+    int column = findColumnByName("PFCF Avg");
     if (column != -1) {
         Object value = tableModel.getValueAt(row, column);
         if (value instanceof Number) {
@@ -1751,7 +1789,7 @@ private class CustomCellRenderer extends DefaultTableCellRenderer {
     }
 }
     
-    else if (columnName.equals("P/FCF") && value instanceof Double) {
+else if (columnName.equals("P/FCF") && value instanceof Double) {
     double pfcfTtm = (Double) value;
     // Get the average P/FCF from historical data
     int pfcfAvgColumn = -1;
