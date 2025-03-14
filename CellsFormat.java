@@ -36,60 +36,255 @@ public class CellsFormat {
                 if (columnName.equals("Graham Number") && value instanceof Double) {
                     double grahamNumber = (Double) value;
                     // Get the price from the "Price" column
-                    double price = getPriceForRow(table, row);
-                    if (price > 0) {
-                        double percentDiff = (grahamNumber - price) / price * 100;
-                        setBackgroundColor(cell, percentDiff);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
+                    int priceColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("Price")) {
+                            priceColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (priceColumn != -1) {
+                        Object priceObj = table.getValueAt(row, priceColumn);
+                        if (priceObj instanceof Double) {
+                            double price = (Double) priceObj;
+                            if (price > 0) {
+                                double percentDiff = (grahamNumber - price) / price * 100;
+                                
+                                if (percentDiff > 0) {
+                                    if (percentDiff <= 25) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (percentDiff <= 50) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {
+                                    percentDiff = Math.abs(percentDiff);
+                                    if (percentDiff <= 25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (percentDiff <= 50) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
                     }
                 } else if (columnName.equals("Debt to Equity") && value instanceof Double) {
                     double debtToEquity = (Double) value;
-                    double deAvg = getAverageForRow(table, row, "DE Avg");
-                    if (deAvg > 0 && debtToEquity > 0) {
-                        double ratio = debtToEquity / deAvg;
-                        setBackgroundColor(cell, ratio, true);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
+                    // Get the DE Avg from the column
+                    int deAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("DE Avg")) {
+                            deAvgColumn = i;
+                            break;
+                        }
                     }
-                /*} else if (columnName.equals("PE TTM") && value instanceof Double) {
+                    
+                    if (deAvgColumn != -1) {
+                        Object deAvgObj = table.getValueAt(row, deAvgColumn);
+                        if (deAvgObj instanceof Double) {
+                            double deAvg = (Double) deAvgObj;
+                            if (deAvg > 0 && debtToEquity > 0) {
+                                double ratio = debtToEquity / deAvg;
+                                
+                                if (ratio < 1) {  // Debt to Equity is lower than average (potentially better)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // Debt to Equity is higher than average (potentially worse)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
+                    }
+                } else if (columnName.equals("PE TTM") && value instanceof Double) {
                     double peTtm = (Double) value;
-                    double peAvg = getAverageForRow(table, row, "PE Avg");
-                    if (peAvg > 0 && peTtm > 0) {
-                        double ratio = peTtm / peAvg;
-                        setBackgroundColor(cell, ratio);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
-                    }*/
-                
-                
-                
+                    // Get the PE Avg from the column
+                    int peAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("PE Avg")) {
+                            peAvgColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (peAvgColumn != -1) {
+                        Object peAvgObj = table.getValueAt(row, peAvgColumn);
+                        if (peAvgObj instanceof Double) {
+                            double peAvg = (Double) peAvgObj;
+                            if (peAvg > 0 && peTtm > 0) {
+                                double ratio = peTtm / peAvg;
+                                
+                                if (ratio < 1) {  // PE TTM is lower than average (potentially undervalued)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // PE TTM is higher than average (potentially overvalued)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
+                    }
                 } else if (columnName.equals("PB TTM") && value instanceof Double) {
                     double pbTtm = (Double) value;
-                    double pbAvg = getAverageForRow(table, row, "PB Avg");
-                    if (pbAvg > 0 && pbTtm > 0) {
-                        double ratio = pbTtm / pbAvg;
-                        setBackgroundColor(cell, ratio);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
+                    // Get the PB Avg from the column
+                    int pbAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("PB Avg")) {
+                            pbAvgColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (pbAvgColumn != -1) {
+                        Object pbAvgObj = table.getValueAt(row, pbAvgColumn);
+                        if (pbAvgObj instanceof Double) {
+                            double pbAvg = (Double) pbAvgObj;
+                            if (pbAvg > 0 && pbTtm > 0) {
+                                double ratio = pbTtm / pbAvg;
+                                
+                                if (ratio < 1) {  // PB TTM is lower than average (potentially undervalued)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // PB TTM is higher than average (potentially overvalued)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
                     }
                 } else if (columnName.equals("P/FCF") && value instanceof Double) {
                     double pfcfTtm = (Double) value;
-                    double pfcfAvg = getAverageForRow(table, row, "PFCF Avg");
-                    if (pfcfAvg > 0 && pfcfTtm > 0) {
-                        double ratio = pfcfTtm / pfcfAvg;
-                        setBackgroundColor(cell, ratio);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
+                    // Get the average P/FCF from historical data
+                    int pfcfAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("PFCF Avg")) {
+                            pfcfAvgColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (pfcfAvgColumn != -1) {
+                        Object pfcfAvgObj = table.getValueAt(row, pfcfAvgColumn);
+                        if (pfcfAvgObj instanceof Double) {
+                            double pfcfAvg = (Double) pfcfAvgObj;
+                            if (pfcfAvg > 0 && pfcfTtm > 0) {
+                                double ratio = pfcfTtm / pfcfAvg;
+                                
+                                if (ratio < 1) {  // P/FCF TTM is lower than average (better valuation)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // P/FCF TTM is higher than average (worse valuation)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
                     }
                 } else if (columnName.equals("ROE TTM") && value instanceof Double) {
                     double roeTtm = (Double) value;
-                    double roeAvg = getAverageForRow(table, row, "ROE Avg");
-                    if (roeAvg > 0 && roeTtm > 0) {
-                        double ratio = roeTtm / roeAvg;
-                        setBackgroundColor(cell, ratio, false);
-                        cell.setForeground(new Color(51, 51, 51));
-                        return cell;
+                    // Get the average ROE from historical data
+                    int roeAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("ROE Avg")) {
+                            roeAvgColumn = i;
+                            break;
+                        }
+                    }
+                    
+                    if (roeAvgColumn != -1) {
+                        Object roeAvgObj = table.getValueAt(row, roeAvgColumn);
+                        if (roeAvgObj instanceof Double) {
+                            double roeAvg = (Double) roeAvgObj;
+                            if (roeAvg > 0 && roeTtm > 0) {
+                                double ratio = roeTtm / roeAvg;
+                                
+                                if (ratio > 1) {  // ROE TTM is higher than average (better performance)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // ROE TTM is lower than average (worse performance)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+                                
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
                     }
                 }
 
@@ -108,89 +303,12 @@ public class CellsFormat {
                 } else {
                     cell.setBackground(Color.WHITE);
                 }
-                cell.setForeground(Color.BLACK); // Reset text color for non-special cells
+                
+                // Reset text color for non-special cells
+                cell.setForeground(Color.BLACK);
             }
             
             return cell;
-        }
-
-        private static double getPriceForRow(JTable table, int row) {
-            int priceColumn = -1;
-            for (int i = 0; i < table.getColumnCount(); i++) {
-                if (table.getColumnName(i).equals("Price")) {
-                    priceColumn = i;
-                    break;
-                }
-            }
-            if (priceColumn != -1) {
-                Object value = table.getValueAt(row, priceColumn);
-                if (value instanceof Number) {
-                    return ((Number) value).doubleValue();
-                }
-            }
-            return 0.0;
-        }
-
-        private static double getAverageForRow(JTable table, int row, String columnName) {
-            int column = -1;
-            for (int i = 0; i < table.getColumnCount(); i++) {
-                if (table.getColumnName(i).equals(columnName)) {
-                    column = i;
-                    break;
-                }
-            }
-            if (column != -1) {
-                Object value = table.getValueAt(row, column);
-                if (value instanceof Number) {
-                    return ((Number) value).doubleValue();
-                }
-            }
-            return 0.0;
-        }
-
-        private static void setBackgroundColor(Component cell, double value) {
-            setBackgroundColor(cell, value, false);
-        }
-
-        private static void setBackgroundColor(Component cell, double value, boolean isRatio) {
-            if (isRatio) {
-                if (value < 1) {
-                    if (value >= 0.75) {
-                        cell.setBackground(LIGHT_GREEN);
-                    } else if (value >= 0.5) {
-                        cell.setBackground(MEDIUM_GREEN);
-                    } else {
-                        cell.setBackground(DARK_GREEN);
-                    }
-                } else {
-                    if (value <= 1.25) {
-                        cell.setBackground(LIGHT_PINK);
-                    } else if (value <= 1.5) {
-                        cell.setBackground(MEDIUM_PINK);
-                    } else {
-                        cell.setBackground(DARK_PINK);
-                    }
-                }
-            } else {
-                if (value > 0) {
-                    if (value <= 25) {
-                        cell.setBackground(LIGHT_GREEN);
-                    } else if (value <= 50) {
-                        cell.setBackground(MEDIUM_GREEN);
-                    } else {
-                        cell.setBackground(DARK_GREEN);
-                    }
-                } else {
-                    value = Math.abs(value);
-                    if (value <= 25) {
-                        cell.setBackground(LIGHT_PINK);
-                    } else if (value <= 50) {
-                        cell.setBackground(MEDIUM_PINK);
-                    } else {
-                        cell.setBackground(DARK_PINK);
-                    }
-                }
-            }
         }
     }
 
