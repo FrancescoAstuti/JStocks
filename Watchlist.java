@@ -3,10 +3,10 @@ import afin.jstocks.CellsFormat;
 
 
 import javax.swing.*;
-import javax.swing.RowSorter.SortKey;
+
 import javax.swing.event.RowSorterEvent;
 import javax.swing.event.RowSorterListener;
-import javax.swing.table.DefaultTableCellRenderer;
+
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
@@ -47,10 +47,11 @@ public class Watchlist {
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
         String[] columnNames = new String[3];
         for (int i = 0; i < 3; i++) {
-            columnNames[i] = "EPS " + (currentYear + i);
+            columnNames[i] = "EPS" + (currentYear + i);
         }
         return columnNames;
     }
+    
 
     public void createAndShowGUI() {
         
@@ -86,13 +87,15 @@ public class Watchlist {
         JPanel mainPanel = new JPanel(new BorderLayout());
 
         String[] dynamicColumnNames = getDynamicColumnNames();
+        String[] peForwardColumnNames = getPEForwardColumnNames();
         tableModel = new DefaultTableModel(new Object[]{
             "Name", "Ticker", "Price", "PE TTM", "PB TTM", "Div. yield %",
             "Payout Ratio", "Graham Number", "PB Avg", "PE Avg",
             "EPS TTM", "ROE TTM", "A-Score",
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
             "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio", 
-            "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg", "P/FCF", "PFCF Avg",
+            "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg", "P/FCF", "PFCF Avg", 
+            peForwardColumnNames[0], peForwardColumnNames[1], peForwardColumnNames[2],
         }, 0) {
             
 
@@ -124,6 +127,10 @@ public class Watchlist {
                     case 24:
                     case 25:
                     case 26:
+                    case 27:
+                    case 28:
+                    case 29:
+                        
                         return Double.class;
                     default:
                         return String.class;
@@ -209,7 +216,7 @@ public class Watchlist {
 
     private void setupTableSorter(TableRowSorter<DefaultTableModel> sorter) {
         // Set comparators for numeric columns if needed
-        for (int i = 2; i <= 16; i++) {
+        for (int i = 2; i <= 29; i++) {
             final int column = i;
             sorter.setComparator(column, Comparator.comparingDouble(o -> (Double) o));
         }
@@ -335,6 +342,10 @@ public class Watchlist {
                         jsonObject.optDouble("roeAvg", 0.0),
                         jsonObject.optDouble("priceToFCF_TTM", 0.0),
                         jsonObject.optDouble("priceToFCF_Avg", 0.0),
+                        jsonObject.optDouble("peForward1",0.0),
+jsonObject.optDouble("peForward2",0.0),
+jsonObject.optDouble("peForward3",0.0),
+
                         
                         
                     };
@@ -388,6 +399,9 @@ public class Watchlist {
             jsonObject.put("roeAvg", tableModel.getValueAt(i, 24));
             jsonObject.put("priceToFCF_TTM", tableModel.getValueAt(i, 25));
             jsonObject.put("priceToFCF_Avg", tableModel.getValueAt(i, 26));
+            jsonObject.put("peForward1", tableModel.getValueAt(i, 27));
+jsonObject.put("peForward2", tableModel.getValueAt(i, 28));
+jsonObject.put("peForward3", tableModel.getValueAt(i, 29));
             jsonArray.put(jsonObject);
         }
 
@@ -610,7 +624,14 @@ public class Watchlist {
 }
     
     private double calculateEpsGrowth1(double epsCurrentYear, double epsTtm) {
-        if (epsTtm <= 0) return 0;
+        if (epsTtm == 0) return 0;
+        
+        else if (epsTtm < 0){
+        double growthRate1 = 100 * (epsCurrentYear - epsTtm) / (-epsTtm);
+        
+        return round(growthRate1, 2);
+        }
+        
         else {
         double growthRate1 = 100 * (epsCurrentYear - epsTtm) / epsTtm;
         
@@ -670,7 +691,7 @@ public class Watchlist {
                         JSONObject epsEstimates = Estimates.fetchEpsEstimates(ticker);
 
                         if (stockData != null) {
-                            double price = round(stockData.getDouble("price"), 2);
+                            final double price = convertGbxToGbp(round(stockData.getDouble("price"), 2), ticker);
                             double peTtm = round(ratios.optDouble("peRatioTTM", 0.0), 2);
                             double pbTtm = round(ratios.optDouble("pbRatioTTM", 0.0), 2);
                             double epsTtm = peTtm != 0 ? round((1 / peTtm) * price, 2) : 0.0;
@@ -698,6 +719,9 @@ public class Watchlist {
                             double epsGrowth2 = calculateEpsGrowth2(epsCurrentYear, epsNextYear);
                             double epsGrowth3 = calculateEpsGrowth3(epsYear3, epsNextYear);
                             double pbAvg = fetchAveragePB(ticker);
+                            double peForward1 = calculatePEForward(price, epsCurrentYear);
+                            double peForward2 = calculatePEForward(price, epsNextYear);
+                            double peForward3 = calculatePEForward(price, epsYear3);
                             double peAvg = fetchAveragePE(ticker);
                             double priceToFCF_TTM = TTM_Ratios.getPriceToFreeCashFlowRatioTTM(ticker);
                             double PriceToFCF_Avg = Ratios.fetchPriceToFreeCashFlowAverage(ticker);
@@ -735,6 +759,9 @@ public class Watchlist {
                                 tableModel.setValueAt(roeAvg, modelRow, 24); // ROE Avg
                                 tableModel.setValueAt(priceToFCF_TTM,    modelRow, 25);
                                 tableModel.setValueAt(PriceToFCF_Avg,    modelRow, 26);
+                                tableModel.setValueAt(peForward1, modelRow, 27);
+                                tableModel.setValueAt(peForward2, modelRow, 28);
+                                tableModel.setValueAt(peForward3, modelRow, 29);
                                 
                             });
 
@@ -1018,6 +1045,17 @@ private double calculateGrahamNumber(double price, double peAvg, double pbAvg, d
     
     return round(grahamNumber, 2);
 }
+
+private double convertGbxToGbp(double price, String ticker) {
+    // Check if the ticker is from London Stock Exchange (usually ends with .L)
+    if (ticker != null && ticker.endsWith(".L")) {
+        // Convert from GBX to GBP (divide by 100)
+        return round(price / 100, 2);
+    }
+    return price;
+}
+
+
     
     
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
@@ -1519,6 +1557,20 @@ private double getPBAvgForRow(int row) {
         }
     }
     return 0.0;
+}
+
+private double calculatePEForward(double price, double eps) {
+    if (eps <= 0) return 0.0;
+    return round(price / eps, 2);
+}
+
+private String[] getPEForwardColumnNames() {
+    int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    String[] peForwardColumnNames = new String[3];
+    for (int i = 0; i < 3; i++) {
+        peForwardColumnNames[i] = "PE FWD" + (currentYear + i);
+    }
+    return peForwardColumnNames;
 }
 
 private double getPriceToFCFAvgForRow(int row) {
