@@ -162,6 +162,49 @@ public class CellsFormat {
                             }
                         }
                     }
+                } else if (columnName.startsWith("PE FWD") && value instanceof Double) {
+                    // Add Forward PE formatting - same as PE TTM
+                    double peForward = (Double) value;
+                    // Get the PE Avg from the column
+                    int peAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("PE Avg")) {
+                            peAvgColumn = i;
+                            break;
+                        }
+                    }
+
+                    if (peAvgColumn != -1) {
+                        Object peAvgObj = table.getValueAt(row, peAvgColumn);
+                        if (peAvgObj instanceof Double) {
+                            double peAvg = (Double) peAvgObj;
+                            if (peAvg > 0 && peForward > 0) {
+                                double ratio = peForward / peAvg;
+
+                                if (ratio < 1) {  // Forward PE is lower than average (potentially undervalued)
+                                    if (ratio >= 0.75) {
+                                        cell.setBackground(LIGHT_GREEN);
+                                    } else if (ratio >= 0.5) {
+                                        cell.setBackground(MEDIUM_GREEN);
+                                    } else {
+                                        cell.setBackground(DARK_GREEN);
+                                    }
+                                } else {  // Forward PE is higher than average (potentially overvalued)
+                                    if (ratio <= 1.25) {
+                                        cell.setBackground(LIGHT_PINK);
+                                    } else if (ratio <= 1.5) {
+                                        cell.setBackground(MEDIUM_PINK);
+                                    } else {
+                                        cell.setBackground(DARK_PINK);
+                                    }
+                                }
+
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
+                    }
                 } else if (columnName.equals("PB TTM") && value instanceof Double) {
                     double pbTtm = (Double) value;
                     // Get the PB Avg from the column
