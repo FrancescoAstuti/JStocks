@@ -36,6 +36,7 @@ public class StockLot {
     private double quantity;
     private double purchasePrice;
     private double currentPrice;
+    private double volatilityScore; // Add volatility score field
 
     private static final String API_KEY = "eb7366217370656d66a56a057b8511b0";
 
@@ -44,6 +45,7 @@ public class StockLot {
         this.quantity = quantity;
         this.purchasePrice = purchasePrice;
         this.currentPrice = currentPrice;
+        this.volatilityScore = calculateVolatilityScore(); // Calculate volatility score
     }
 
     public String getTicker() {
@@ -78,6 +80,10 @@ public class StockLot {
         this.currentPrice = currentPrice;
     }
 
+    public double getVolatilityScore() {
+        return volatilityScore;
+    }
+
     public double getProfitLossPercentage() {
         return ((currentPrice - purchasePrice) / purchasePrice) * 100;
     }
@@ -101,10 +107,15 @@ public class StockLot {
             if (jsonArray.length() > 0) {
                 JSONObject jsonObject = jsonArray.getJSONObject(0);
                 this.currentPrice = jsonObject.getDouble("price");
+                this.volatilityScore = calculateVolatilityScore(); // Update volatility score
             }
         } else {
             throw new IOException("Failed to fetch stock price. Response code: " + responseCode);
         }
+    }
+
+    private double calculateVolatilityScore() {
+        return Analytics.calculateVolatilityScore(ticker);
     }
 
     public static void createAndShowGUI(ArrayList<StockLot> stockLots) {
@@ -114,7 +125,7 @@ public class StockLot {
 
         JPanel panel = new JPanel(new BorderLayout());
 
-        DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Ticker", "Quantity", "Purchase Price", "Current Price", "P/L (%)"}, 0);
+        DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Ticker", "Quantity", "Purchase Price", "Current Price", "P/L (%)", "Volatility Score"}, 0);
         JTable table = new JTable(tableModel);
 
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
@@ -122,6 +133,7 @@ public class StockLot {
         sorter.setComparator(2, Comparator.comparingDouble(o -> Double.parseDouble(o.toString())));
         sorter.setComparator(3, Comparator.comparingDouble(o -> Double.parseDouble(o.toString())));
         sorter.setComparator(4, Comparator.comparingDouble(o -> Double.parseDouble(o.toString())));
+        sorter.setComparator(5, Comparator.comparingDouble(o -> Double.parseDouble(o.toString())));
         table.setRowSorter(sorter);
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -266,6 +278,7 @@ public class StockLot {
                 stockLot.setQuantity(quantity);
                 stockLot.setPurchasePrice(purchasePrice);
                 stockLot.setCurrentPrice(currentPrice);
+                stockLot.volatilityScore = stockLot.calculateVolatilityScore(); // Update volatility score
                 updateTable(stockLots, tableModel, null);
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(null, "Please enter valid numbers", "Error", JOptionPane.ERROR_MESSAGE);
@@ -294,7 +307,8 @@ public class StockLot {
                 stockLot.getQuantity(),
                 round(stockLot.getPurchasePrice(), 2),
                 round(stockLot.getCurrentPrice(), 2),
-                round(stockLot.getProfitLossPercentage(), 2)
+                round(stockLot.getProfitLossPercentage(), 2),
+                round(stockLot.getVolatilityScore(), 2) // Add volatility score to table
             });
         }
 
@@ -325,6 +339,7 @@ public class StockLot {
             jsonObject.put("quantity", stockLot.getQuantity());
             jsonObject.put("purchasePrice", stockLot.getPurchasePrice());
             jsonObject.put("currentPrice", stockLot.getCurrentPrice());
+            jsonObject.put("volatilityScore", stockLot.getVolatilityScore()); // Save volatility score
             jsonArray.put(jsonObject);
         }
 
@@ -346,7 +361,10 @@ public class StockLot {
                 double quantity = jsonObject.getDouble("quantity");
                 double purchasePrice = jsonObject.getDouble("purchasePrice");
                 double currentPrice = jsonObject.getDouble("currentPrice");
-                stockLots.add(new StockLot(ticker, quantity, purchasePrice, currentPrice));
+                double volatilityScore = jsonObject.getDouble("volatilityScore");
+                StockLot stockLot = new StockLot(ticker, quantity, purchasePrice, currentPrice);
+                stockLot.volatilityScore = volatilityScore; // Load volatility score
+                stockLots.add(stockLot);
             }
             System.out.println("Stock lots loaded successfully.");
         } catch (IOException e) {

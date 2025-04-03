@@ -626,4 +626,75 @@ public class Analytics {
         
         return tickers;
     }
+    
+    /**
+ * Calcola il punteggio di volatilità per un singolo stock utilizzando
+ * la deviazione standard annualizzata dei rendimenti giornalieri
+ * 
+ * @param ticker Simbolo del ticker dello stock
+ * @return Punteggio di volatilità su una scala da 0-10
+ */
+public static double calculateVolatilityScore(String ticker) {
+    try {
+        String endpoint = ENDPOINT_BASE + ticker + "?apikey=" + API_KEY;
+        JSONObject response = fetchHistoricalDataObj(endpoint);
+        
+        if (response != null && response.has("historical")) {
+            JSONArray priceData = response.getJSONArray("historical");
+            
+            if (priceData != null && priceData.length() > 0) {
+                List<Double> closePrices = extractClosePricesFromHistorical(priceData);
+                
+                if (closePrices.size() >= 30) { // Richiede almeno 30 punti di dati
+                    // Calcola i rendimenti giornalieri logaritmici
+                    List<Double> logReturns = new ArrayList<>();
+                    for (int i = 1; i < closePrices.size(); i++) {
+                        double current = closePrices.get(i);
+                        double previous = closePrices.get(i-1);
+                        if (previous > 0 && current > 0) {
+                            // Utilizzo dei rendimenti logaritmici che sono più comuni in finanza
+                            logReturns.add(Math.log(current / previous));
+                        }
+                    }
+                    
+                    // Calcola la deviazione standard
+                    double sum = 0.0;
+                    for (Double ret : logReturns) {
+                        sum += ret;
+                    }
+                    double mean = sum / logReturns.size();
+                    
+                    double squaredDiffSum = 0.0;
+                    for (Double ret : logReturns) {
+                        squaredDiffSum += Math.pow(ret - mean, 2);
+                    }
+                    double stdDev = Math.sqrt(squaredDiffSum / logReturns.size());
+                    
+                    // Annualizza (assumendo dati giornalieri, tipicamente si usa √252)
+                    double annualizedStdDev = stdDev * Math.sqrt(252);
+                    
+                    // Converti in un punteggio da 0-10
+                    // Nella finanza, una volatilità annualizzata:
+                    // - < 15% è considerata bassa (1-3)
+                    // - 15%-30% è considerata media (4-6)
+                    // - > 30% è considerata alta (7-10)
+                    
+                    // Formula: mappa le volatilità del 15%, 30% e 60% rispettivamente a 3, 6 e 10
+                    double volatilityScore = (annualizedStdDev * 100) / 6;
+                    
+                    // Limita il punteggio tra 0 e 10 e arrotonda a 1 decimale
+                    return Math.min(10.0, Math.round(volatilityScore * 10) / 10.0);
+                }
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Errore nel calcolo della volatilità per " + ticker + ": " + e.getMessage());
+    }
+    
+    return 0.0; // Punteggio predefinito se il calcolo fallisce
+}
+    
+    
+    
+    
 }

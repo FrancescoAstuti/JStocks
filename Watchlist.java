@@ -95,7 +95,7 @@ public class Watchlist {
             dynamicColumnNames[0], dynamicColumnNames[1], dynamicColumnNames[2],
             "Debt to Equity", "EPS Growth 1", "Current Ratio", "Quick Ratio",
             "EPS Growth 2", "EPS Growth 3", "DE Avg", "Industry", "ROE Avg", "P/FCF", "PFCF Avg",
-            peForwardColumnNames[0], peForwardColumnNames[1], peForwardColumnNames[2],}, 0) {
+            peForwardColumnNames[0], peForwardColumnNames[1], peForwardColumnNames[2], "Volatility"}, 0) {
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
@@ -128,6 +128,7 @@ public class Watchlist {
                     case 27:
                     case 28:
                     case 29:
+                    case 30:
 
                         return Double.class;
                     default:
@@ -347,7 +348,8 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
                         jsonObject.optDouble("priceToFCF_Avg", 0.0),
                         jsonObject.optDouble("peForward1", 0.0),
                         jsonObject.optDouble("peForward2", 0.0),
-                        jsonObject.optDouble("peForward3", 0.0),};
+                        jsonObject.optDouble("peForward3", 0.0),
+                        jsonObject.optDouble("volatility", 0.0),};
                     tableModel.addRow(rowData);
                     System.out.println("Added stock: " + jsonObject.optString("ticker", "")
                             + " with price: " + jsonObject.optDouble("price", 0.0));
@@ -401,6 +403,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
             jsonObject.put("peForward1", tableModel.getValueAt(i, 27));
             jsonObject.put("peForward2", tableModel.getValueAt(i, 28));
             jsonObject.put("peForward3", tableModel.getValueAt(i, 29));
+            jsonObject.put("volatility", tableModel.getValueAt(i, 30));
             jsonArray.put(jsonObject);
         }
 
@@ -730,7 +733,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
                             String industry = CompanyOverview.fetchIndustry(ticker);
                             double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price, priceToFCF_TTM, PriceToFCF_Avg);
-
+                            double volatilityScore = Analytics.calculateVolatilityScore(ticker);
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
                             SwingUtilities.invokeLater(() -> {
@@ -762,6 +765,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
                                 tableModel.setValueAt(peForward1, modelRow, 27);
                                 tableModel.setValueAt(peForward2, modelRow, 28);
                                 tableModel.setValueAt(peForward3, modelRow, 29);
+                                tableModel.setValueAt(volatilityScore, modelRow, 30);
 
                             });
 
