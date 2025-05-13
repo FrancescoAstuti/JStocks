@@ -264,18 +264,21 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
         JButton refreshButton = new JButton("Refresh");
         JButton exportButton = new JButton("Export XLSX");
         JButton analyticsButton = new JButton("Analytics");
+        JButton dataButton = new JButton("Data");
 
         addButton.addActionListener(e -> addStock());
         deleteButton.addActionListener(e -> deleteStock());
         refreshButton.addActionListener(e -> refreshWatchlist());
         exportButton.addActionListener(e -> exportToExcel());
         analyticsButton.addActionListener(e -> Analytics.analyzeWatchlist()); 
+        dataButton.addActionListener(e -> Download_Data.downloadTickerData(watchlistTable, tableModel));
 
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(exportButton);
         buttonPanel.add(analyticsButton); 
+        buttonPanel.add(dataButton);
     }
 
     private void toggleColumnVisibility(String columnName, boolean visible) {
@@ -984,13 +987,9 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
                 for (int i = 0; i < data.length(); i++) {
                     JSONObject metrics = data.getJSONObject(i);
                     double peRatio = metrics.optDouble("peRatio", 0.0);
-                    if (peRatio != 0.0) {  // Include all non-zero PE ratios
-                        // Cap PE ratios: positive at 30, negative at -30
-                        if (peRatio > 0) {
-                            peRatio = Math.min(peRatio, 30.0);
-                        } else {
-                            peRatio = Math.max(peRatio, -30.0);
-                        }
+                     if (peRatio > 0.0) {  // Only include positive PE ratios
+                    // Cap PE ratios at 30
+                        peRatio = Math.min(peRatio, 30.0);
                         sum += peRatio;
                         count++;
                     }
