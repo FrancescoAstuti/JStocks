@@ -741,9 +741,11 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
                             double grahamNumber = calculateGrahamNumber(price, peAvg, pbAvg, epsTtm, pbTtm);
                             double deAvg = Ratios.fetchDebtToEquityAverage(ticker);
                             String industry = CompanyOverview.fetchIndustry(ticker);
-                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio, quickRatio, grahamNumber, price, priceToFCF_TTM, PriceToFCF_Avg);
+                            double prAvg = Ratios.fetchPayoutRatioAverage(ticker); 
+                            double aScore = calculateAScore(pbAvg, pbTtm, peAvg, peTtm, payoutRatio, debtToEquity, roeTtm, roeAvg, dividendYieldTTM, deAvg, epsGrowth1, epsGrowth2, epsGrowth3, currentRatio,
+                                                            quickRatio, grahamNumber, price, priceToFCF_TTM, PriceToFCF_Avg, prAvg);
                             double volatilityScore = Analytics.calculateVolatilityScore(ticker);
-                             double prAvg = Ratios.fetchPayoutRatioAverage(ticker); 
+                             
                             System.out.printf("Ticker: %s, DebtToEquity: %s, A-Score: %f%n", ticker, debtToEquity, aScore);
 
                             SwingUtilities.invokeLater(() -> {
@@ -1075,7 +1077,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
 
     private double calculateAScore(double pbAvg, double pbTtm, double peAvg, double peTtm, double payoutRatio, double debtToEquity,
             double roe, double roeAvg, double dividendYieldTTM, double deAvg, double epsGrowth1, double epsGrowth2, double epsGrowth3,
-            double currentRatio, double quickRatio, double grahamNumberTerm, double price, double priceToFCF_TTM, double priceToFCF_AVG) {
+            double currentRatio, double quickRatio, double grahamNumberTerm, double price, double priceToFCF_TTM, double priceToFCF_AVG, double prAvg) {
         double peRatioTerm = 0;
         double pbRatioTerm = 0;
         double payoutRatioTerm = 0;
@@ -1090,6 +1092,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
         double currentRatioTerm = 0;
         double quickRatioTerm = 0;
         double pfcfTerm = 0;
+        double prAvgTerm = 0;
 
 // Conditions for debt to Equity
         if (debtToEquity == 0 || deAvg == 0.0) {
@@ -1210,7 +1213,7 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
             epsGrowth2Term = 2;
         }
 
-        // Conditions for epsGrowht2
+        // Conditions for epsGrowht3
         if (epsGrowth3 <= -25) {
             epsGrowth3Term = -2;
         } else if (epsGrowth3 > -25 && epsGrowth3 <= 0) {
@@ -1255,10 +1258,21 @@ mainPanel.add(scrollPane, BorderLayout.CENTER);
         } else if (quickRatio >= 2) {
             quickRatioTerm = 2;
         }
+        
+         // Conditions for prAvgTerm calculation
+    if (prAvg > 0 && payoutRatio >= 0) {
+        if (payoutRatio < 0.5 * prAvg) {
+            prAvgTerm = 2;  // payoutratio < 50% prAvg
+        } else if (payoutRatio < prAvg) {
+            prAvgTerm = 1;  // 50% prAvg <= payoutratio < 100% prAvg
+        } else {
+            prAvgTerm = 0;  // payoutratio >= 100% prAvg
+        }
+    }
 
         return (payoutRatioTerm + deAvgTerm + debtToEquityTerm + dividendYieldTerm + peRatioTerm + pbRatioTerm
                 + payoutRatioTerm + epsGrowth1Term + epsGrowth3Term + epsGrowth2Term + currentRatioTerm
-                + quickRatioTerm + roeTerm + roeAvgTerm + grahamNumberTerm + pfcfTerm);
+                + quickRatioTerm + roeTerm + roeAvgTerm + grahamNumberTerm + pfcfTerm + prAvgTerm);
 
     }
 

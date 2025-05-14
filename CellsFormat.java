@@ -331,8 +331,38 @@ public class CellsFormat {
                             }
                         }
                     }
-                    
-                    
+                } else if (columnName.equals("Payout Ratio") && value instanceof Double) {
+                    double payoutRatio = (Double) value;
+                    // Get the PR Avg from the column
+                    int prAvgColumn = -1;
+                    for (int i = 0; i < table.getColumnCount(); i++) {
+                        if (table.getColumnName(i).equals("PR Avg")) {
+                            prAvgColumn = i;
+                            break;
+                        }
+                    }
+
+                    if (prAvgColumn != -1) {
+                        Object prAvgObj = table.getValueAt(row, prAvgColumn);
+                        if (prAvgObj instanceof Double) {
+                            double prAvg = (Double) prAvgObj;
+                            if (prAvg > 0 && payoutRatio >= 0) {
+                                if (payoutRatio < 0.5 * prAvg) {
+                                    cell.setBackground(DARK_GREEN);  // payoutRatio < 50% prAvg (much lower than average)
+                                } else if (payoutRatio < prAvg) {
+                                    cell.setBackground(MEDIUM_GREEN);  // 50% prAvg <= payoutRatio < 100% prAvg (lower than average)
+                                } else if (payoutRatio < 1.5 * prAvg) {
+                                    cell.setBackground(LIGHT_PINK);  // 100% prAvg <= payoutRatio < 150% prAvg (slightly higher than average)
+                                } else {
+                                    cell.setBackground(MEDIUM_PINK);  // payoutRatio >= 150% prAvg (much higher than average)
+                                }
+
+                                // Set text color to dark gray for better readability
+                                cell.setForeground(new Color(51, 51, 51));
+                                return cell;
+                            }
+                        }
+                    }
                 } else if ((columnName.equals("EPS Growth 1")
                         || columnName.equals("EPS Growth 2")
                         || columnName.equals("EPS Growth 3"))
